@@ -65,8 +65,8 @@ impl Deck {
 
     pub fn shuffle(&mut self) {
         for _ in 0..1000 {
-            let index_a = rand::random::<usize>() % 52;
-            let index_b = rand::random::<usize>() % 52;
+            let index_a = rand::random::<usize>() % self.deck.len();
+            let index_b = rand::random::<usize>() % self.deck.len();
             self.deck.swap(index_a, index_b);
         }
     }

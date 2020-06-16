@@ -7,9 +7,9 @@ pub struct Player {
 }
 
 impl Player {
-    pub fn new(name: String, hand: Vec<Card>) -> Self {
+    pub fn new<S: Into<String>>(name: S, hand: Vec<Card>) -> Self {
         Player {
-            name,
+            name: name.into(),
             hand,
         }
     }
