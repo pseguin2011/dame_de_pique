@@ -1,36 +1,27 @@
 pub mod deck;
 pub mod player;
 pub mod error;
+mod gameplay;
 
 use deck::Deck;
 use deck::DeckType;
 use player::Player;
+use gameplay::Game;
+
+pub use gameplay::Turn;
 
 fn main() {
     initialize_game();
 }
 
 fn initialize_game() -> Result<(), error::CardGameError> {
-    let mut deck = Deck::new(DeckType::WithJokers);
-    //two decks needed for this game
-    deck.extend(Deck::new(DeckType::WithJokers));
-    deck.shuffle();
-
-    let mut players = Vec::with_capacity(4);
-    for i in 1..5 {
-        players.push(Player::new(format!("Player {}", i), deck.draw_cards(13).unwrap()));
-    }
-    
-    let top_card = deck.draw_card();
-    if let Some(card) = top_card {
-        deck.discard_card(card);
-    }
-    
-    println!("{:?}", deck);
-
-    for player in players {
-        println!("\n Player: {:?}", player);
-    }
-
+    let mut game = Game::new()?;
+    println!("{:?}",game.players[0]);
+    game.player_move(0, Turn::Draw);
+    println!();
+    println!("{:?}",game.players[0]);
+    println!();
+    game.player_move(0, Turn::Discard(1));
+    println!("{:?}",game.players[0]);
     Ok(())
 }
