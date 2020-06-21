@@ -31,8 +31,8 @@ pub enum DeckType {
 
 #[derive(Debug)]
 pub struct Card {
-    value: String,
-    suit: String,
+    pub value: String,
+    pub suit: String,
 }
 
 #[derive(Debug)]
@@ -97,5 +97,9 @@ impl Deck {
 
     pub fn discard_card(&mut self, card: Card) {
         self.discard_pile.push(card);
+    }
+
+    pub fn peek_top_card(&self) -> &Card {
+        &self.discard_pile[0]
     }
 }

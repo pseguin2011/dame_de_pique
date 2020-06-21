@@ -3,7 +3,7 @@ use crate::deck::Card;
 #[derive(Debug)]
 pub struct Player {
     name: String,
-    hand: Vec<Card>,
+    pub hand: Vec<Card>,
 }
 
 impl Player {

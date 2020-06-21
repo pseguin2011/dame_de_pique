@@ -2,11 +2,18 @@ use crate::deck::{Card, Deck, DeckType};
 use crate::error::CardGameError;
 use crate::player::Player;
 
+use std::collections::HashMap;
+
 pub enum Turn<'a> {
     Draw,
     PickUpDeck(Vec<&'a Card>),
     Open(Vec<Card>),
     Discard(usize),
+}
+
+pub enum OpenOption {
+    CanOpen,
+    CannotOpen,
 }
 
 #[derive(Debug)]
@@ -57,12 +64,42 @@ impl Game {
             Turn::PickUpDeck(_) => {
                 unimplemented!();
             },
-            Turn::Open(_) => {
-                unimplemented!();
+            Turn::Open(cards) => {
+                match self.player_can_open(&cards) {
+                    OpenOption::CanOpen => unimplemented!(),
+                    OpenOption::CannotOpen => unimplemented!(),
+                }
             },
             Turn::Discard(card_index) => {
                 self.deck.discard_card(self.players[player].play_card_from_hand(card_index));
             },
         }
+    }
+
+    fn player_can_open(&self, player_cards: &[Card]) -> OpenOption {
+        let mut card_sets: HashMap<String, usize> = HashMap::new();
+        for card in player_cards {
+            match card_sets.get_mut(&card.value) {
+                Some(v) =>  *v += 1,
+                None => { card_sets.insert(card.value.clone(), 1); },
+            }
+        }
+
+        // two and jokers cannot be counted towards an opening move
+        card_sets.remove("Two");
+        card_sets.remove("Joker");
+
+        let full_set_iterator = card_sets.iter();
+        let sets_of_three_or_more = full_set_iterator
+            .filter(|(_, &v)| v >= 3)
+            .count();
+        
+
+        // player can open without top card
+        if sets_of_three_or_more >= 3 {
+            return OpenOption::CanOpen;
+        }
+
+        OpenOption::CannotOpen
     }
 }
