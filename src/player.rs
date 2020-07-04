@@ -1,9 +1,12 @@
 use crate::deck::Card;
 
+use std::collections::HashMap;
+
 #[derive(Debug)]
 pub struct Player {
     name: String,
     pub hand: Vec<Card>,
+    pub has_opened: bool,
 }
 
 impl Player {
@@ -11,6 +14,7 @@ impl Player {
         Player {
             name: name.into(),
             hand,
+            has_opened: false,
         }
     }
 
@@ -20,5 +24,41 @@ impl Player {
 
     pub fn play_card_from_hand(&mut self, index: usize) -> Card {
         self.hand.remove(index)
+    }
+}
+
+#[derive(Debug)]
+pub enum TeamStatus {
+    NoneOpen,
+    PlayerAOpen,
+    PlayerBOpen,
+    BothOpen,
+}
+
+#[derive(Debug)]
+pub struct Partners {
+    player_a_index: usize,
+    player_b_index: usize,
+    points_deck: HashMap<String, Vec<Card>>,
+    pub status: TeamStatus,
+}
+
+impl Partners {
+    pub fn new(player_a_index: usize, player_b_index: usize) -> Self {
+        Self {
+            player_a_index,
+            player_b_index,
+            points_deck: HashMap::new(),
+            status: TeamStatus::NoneOpen,
+        }
+    }
+
+    pub fn add_points(&mut self, cards: Vec<Card>) {
+        for card in cards {
+            match self.points_deck.get_mut(&card.value) {
+                Some(v) => v.push(card),
+                None => { self.points_deck.insert(card.value.clone(), vec![card]); },
+            }
+        }
     }
 }
