@@ -59,10 +59,12 @@ impl Deck {
         Deck { deck, discard_pile }
     }
 
+    /// Extends the deck with another deck
     pub fn extend(&mut self, new_deck: Deck) {
         self.deck.extend(new_deck.deck);
     }
 
+    /// Shuffles the deck by making 1000 random swaps
     pub fn shuffle(&mut self) {
         for _ in 0..1000 {
             let index_a = rand::random::<usize>() % self.deck.len();
@@ -91,15 +93,18 @@ impl Deck {
         Ok(cards)
     }
 
+    /// Draws a single card from the deck
     pub fn draw_card(&mut self) -> Option<Card> {
         self.deck.pop()
     }
 
+    /// Adds a card to the discard pile
     pub fn discard_card(&mut self, card: Card) {
         self.discard_pile.push(card);
     }
 
-    pub fn peek_top_card(&self) -> &Card {
+    /// Returns a reference to the top card of the discard pile
+    pub fn peek_top_discarded_card(&self) -> &Card {
         &self.discard_pile[0]
     }
 }

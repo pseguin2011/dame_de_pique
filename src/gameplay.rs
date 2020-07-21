@@ -19,13 +19,14 @@ pub enum Turn {
 
 pub enum OpenOption {
     CanOpen,
+    CanOpenWithDiscardDeck,
     CannotOpen,
 }
 
 #[derive(Debug)]
 pub struct Game {
     pub players: [Player; 4],
-    partners: (Partners, Partners),
+    partners: [Partners; 2],
     deck: Deck,
 }
 
@@ -48,10 +49,10 @@ impl Game {
             deck.discard_card(top_card);
         }
 
-        let partners = (
+        let partners = [
             Partners::new(0, 1),
             Partners::new(2,3),
-        );
+        ];
         
         Ok(Game {
             players,
@@ -80,9 +81,12 @@ impl Game {
                 unimplemented!();
             },
             Turn::Open(cards) => {
-                match self.player_can_open(&cards) {
-                    OpenOption::CanOpen => unimplemented!(),
-                    OpenOption::CannotOpen => unimplemented!(),
+                if let (Some(partner), Some(partners)) = (self.partner_of(player), self.partners_of(player)) {
+                    if self.player_can_open(&cards, &self.players[partner]) {
+                        self.partners[partners].add_points(cards);
+                    }
+                } else {
+                    panic!("Game was not initialized correctly, partner was not found!");
                 }
             },
             Turn::Discard(card_index) => {
@@ -105,7 +109,7 @@ impl Game {
     /// ### TODO
     /// This method is missing the addition of wild cards, opening with the top card on the discard pile,
     /// opening if the partner has already opened (Only requiring 1 set of 3 in that case)
-    fn player_can_open(&self, player_cards: &[Card]) -> OpenOption {
+    fn player_can_open<'b> (&self, player_cards: &[Card], _partner: &'b Player) -> bool {
         let mut card_sets: HashMap<String, usize> = HashMap::new();
         for card in player_cards {
             match card_sets.get_mut(&card.value) {
@@ -126,9 +130,32 @@ impl Game {
 
         // player can open without top card
         if sets_of_three_or_more >= 3 {
-            return OpenOption::CanOpen;
+            return true;
         }
 
-        OpenOption::CannotOpen
+        if let (2, Some(2)) = (sets_of_three_or_more, card_sets.get(&self.deck.peek_top_discarded_card().value)) {
+            return true;
+        }
+
+        false
     }
+
+    fn partner_of(&self, player: usize) -> Option<usize> {
+        for partner in self.partners.iter() {
+            if let Some(p) = partner.get_partner(player) {
+                return Some(p);
+            }
+        }
+        None
+    }
+
+    fn partners_of(&self, player: usize) -> Option<usize> {
+        for i in 0..self.partners.len() {
+            if self.partners[i].get_partner(player).is_some() {
+                return Some(i);
+            }
+        }
+        None
+    }
+    
 }
