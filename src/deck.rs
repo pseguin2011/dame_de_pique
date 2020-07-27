@@ -107,4 +107,13 @@ impl Deck {
     pub fn peek_top_discarded_card(&self) -> &Card {
         &self.discard_pile[0]
     }
+    pub fn pop_top_discarded_card(&mut self) -> Card {
+        self.discard_pile.remove(0)
+    }
+
+    pub fn take_discard_pile(&mut self) -> Vec<Card> {
+        let returned_pile = std::mem::take(&mut self.discard_pile);
+        self.discard_pile = Vec::new();
+        returned_pile
+    }
 }

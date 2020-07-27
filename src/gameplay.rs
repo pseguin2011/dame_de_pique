@@ -7,12 +7,13 @@ use std::collections::HashMap;
 
 pub enum DrawOption {
     DrawFromDeck,
-    PickUpDiscardDeck,
+    PickUpDiscardDeckWithHand(Vec<Card>),
 }
 
 pub enum Turn {
     Draw(DrawOption),
     Open(Vec<Card>),
+    AddPoints(Vec<Card>),
     Discard(usize),
 }
 
@@ -77,17 +78,26 @@ impl Game {
                     self.players[player].add_card_to_hand(card);
                 }
             },
-            Turn::Draw(DrawOption::PickUpDiscardDeck) => {
-                unimplemented!();
+            Turn::Draw(DrawOption::PickUpDiscardDeckWithHand(hand)) => {
+                if let (Some(player_index_of_partner), Some(partner_index)) = (self.player_index_of_partner(player), self.partners_index(player)) {
+                    if self.player_can_open(&hand, true, &self.players[player_index_of_partner]) {
+                        self.partners[partner_index].add_points(hand);
+                        self.partners[partner_index].add_points(vec![self.deck.pop_top_discarded_card()]);
+                        self.players[player].hand.extend(self.deck.take_discard_pile());
+                    }
+                }
             },
             Turn::Open(cards) => {
-                if let (Some(partner), Some(partners)) = (self.partner_of(player), self.partners_of(player)) {
-                    if self.player_can_open(&cards, &self.players[partner]) {
-                        self.partners[partners].add_points(cards);
+                if let (Some(player_index_of_partner), Some(partner_index)) = (self.player_index_of_partner(player), self.partners_index(player)) {
+                    if self.player_can_open(&cards, false, &self.players[player_index_of_partner]) {
+                        self.partners[partner_index].add_points(cards);
                     }
                 } else {
                     panic!("Game was not initialized correctly, partner was not found!");
                 }
+            },
+            Turn::AddPoints(cards) => {
+                unimplemented!();
             },
             Turn::Discard(card_index) => {
                 self.deck.discard_card(self.players[player].play_card_from_hand(card_index));
@@ -109,12 +119,20 @@ impl Game {
     /// ### TODO
     /// This method is missing the addition of wild cards, opening with the top card on the discard pile,
     /// opening if the partner has already opened (Only requiring 1 set of 3 in that case)
-    fn player_can_open<'b> (&self, player_cards: &[Card], _partner: &'b Player) -> bool {
+    fn player_can_open<'b> (&self, player_cards: &[Card], with_discard_deck: bool, _partner: &'b Player) -> bool {
         let mut card_sets: HashMap<String, usize> = HashMap::new();
         for card in player_cards {
             match card_sets.get_mut(&card.value) {
                 Some(v) =>  *v += 1,
                 None => { card_sets.insert(card.value.clone(), 1); },
+            }
+        }
+
+        if with_discard_deck {
+            let top_card = self.deck.peek_top_discarded_card();
+            match card_sets.get_mut(&top_card.value) {
+                Some(v) =>  *v += 1,
+                None => { card_sets.insert(top_card.value.clone(), 1); },
             }
         }
 
@@ -140,16 +158,21 @@ impl Game {
         false
     }
 
-    fn partner_of(&self, player: usize) -> Option<usize> {
+    /// Returns the player index of the partner
+    /// 
+    /// ## Purpose
+    /// As the game is organized by players and partners, we must be able to find who the
+    fn player_index_of_partner(&self, current_player: usize) -> Option<usize> {
         for partner in self.partners.iter() {
-            if let Some(p) = partner.get_partner(player) {
+            if let Some(p) = partner.get_partner(current_player) {
                 return Some(p);
             }
         }
         None
     }
-
-    fn partners_of(&self, player: usize) -> Option<usize> {
+    
+    /// Returns the partners index of the provided player
+    fn partners_index(&self, player: usize) -> Option<usize> {
         for i in 0..self.partners.len() {
             if self.partners[i].get_partner(player).is_some() {
                 return Some(i);

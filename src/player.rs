@@ -28,11 +28,17 @@ impl Player {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub enum TeamStatus {
-    NoneOpen,
-    PlayerAOpen,
-    PlayerBOpen,
-    BothOpen,
+enum TeamOpenStatus {
+    None,
+    PlayerA,
+    PlayerB,
+    Both,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub enum PlayerAction {
+    PlayerA,
+    PlayerB,
 }
 
 #[derive(Debug)]
@@ -40,7 +46,7 @@ pub struct Partners {
     player_a_index: usize,
     player_b_index: usize,
     points_deck: HashMap<String, Vec<Card>>,
-    status: TeamStatus,
+    status: TeamOpenStatus,
 }
 
 impl Partners {
@@ -49,7 +55,7 @@ impl Partners {
             player_a_index,
             player_b_index,
             points_deck: HashMap::new(),
-            status: TeamStatus::NoneOpen,
+            status: TeamOpenStatus::None,
         }
     }
 
@@ -65,29 +71,33 @@ impl Partners {
     pub fn update_status(&mut self, player_opening: usize) {
         let status;
         if player_opening == self.player_a_index {
-            status = TeamStatus::PlayerAOpen;
+            status = TeamOpenStatus::PlayerA;
         } else if player_opening == self.player_b_index {
-            status = TeamStatus::PlayerBOpen;
+            status = TeamOpenStatus::PlayerB;
         } else {
             // invalid user opening here
             return;
         }
 
         match (status, &self.status) {
-            (TeamStatus::PlayerAOpen, TeamStatus::PlayerBOpen) |
-            (TeamStatus::PlayerBOpen, TeamStatus::PlayerAOpen) => {
-                self.status = TeamStatus::BothOpen
+            (TeamOpenStatus::PlayerA, TeamOpenStatus::PlayerB) |
+            (TeamOpenStatus::PlayerB, TeamOpenStatus::PlayerA) => {
+                self.status = TeamOpenStatus::Both
             },
-            (s, TeamStatus::NoneOpen) => {
+            (s, TeamOpenStatus::None) => {
                 self.status = s;
             }
             _ => {},
         }
     }
 
-    pub fn get_status(&self) -> TeamStatus {
+    fn get_status(&self) -> TeamOpenStatus {
         self.status
     }
+
+    // pub fn get_open_status_for(&self, player: usize) -> PlayerAction {
+    //     if self.get_status()
+    // }
 
     pub fn get_partner(&self, player_index: usize) -> Option<usize> {
         if player_index == self.player_a_index {
@@ -106,42 +116,42 @@ fn test_status() {
     let mut partners = Partners::new(0,1);
     partners.update_status(0);
     match partners.get_status() {
-        TeamStatus::PlayerAOpen => {},
+        TeamOpenStatus::PlayerA => {},
         _ => {
-            panic!("Assertion failed, got {:?}, expected {:?}", partners.get_status(), TeamStatus::PlayerAOpen);
+            panic!("Assertion failed, got {:?}, expected {:?}", partners.get_status(), TeamOpenStatus::PlayerA);
         },
     }
 
     partners.update_status(1);
     match partners.get_status() {
-        TeamStatus::BothOpen => {},
+        TeamOpenStatus::Both => {},
         _ => {
-            panic!("Assertion failed, got {:?}, expected {:?}", partners.get_status(), TeamStatus::BothOpen);
+            panic!("Assertion failed, got {:?}, expected {:?}", partners.get_status(), TeamOpenStatus::Both);
         },
     }
 
     let mut partners = Partners::new(0,1);
     partners.update_status(1);
     match partners.get_status() {
-        TeamStatus::PlayerBOpen => {},
+        TeamOpenStatus::PlayerB => {},
         _ => {
-            panic!("Assertion failed, got {:?}, expected {:?}", partners.get_status(), TeamStatus::PlayerBOpen);
+            panic!("Assertion failed, got {:?}, expected {:?}", partners.get_status(), TeamOpenStatus::PlayerB);
         },
     }
 
     partners.update_status(1);
     match partners.get_status() {
-        TeamStatus::PlayerBOpen => {},
+        TeamOpenStatus::PlayerB => {},
         _ => {
-            panic!("Assertion failed, got {:?}, expected {:?}", partners.get_status(), TeamStatus::PlayerBOpen);
+            panic!("Assertion failed, got {:?}, expected {:?}", partners.get_status(), TeamOpenStatus::PlayerB);
         },
     }
 
     partners.update_status(0);
     match partners.get_status() {
-        TeamStatus::BothOpen => {},
+        TeamOpenStatus::Both => {},
         _ => {
-            panic!("Assertion failed, got {:?}, expected {:?}", partners.get_status(), TeamStatus::BothOpen);
+            panic!("Assertion failed, got {:?}, expected {:?}", partners.get_status(), TeamOpenStatus::Both);
         },
     }
 
