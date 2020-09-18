@@ -2,13 +2,12 @@
 #[macro_use] extern crate rocket;
 use std::sync::Mutex;
 
-mod gameplay;
-pub mod player;
+pub mod game;
 use rocket::State;
 
-use gameplay::Game;
+use game::Game;
 
-pub use gameplay::{Turn, DrawOption};
+pub use game::{Turn, DrawOption};
 
 use card_game_engine::error::CardGameError;
 

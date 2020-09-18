@@ -1,7 +1,7 @@
 use card_game_engine::deck::{Card, CardSuit, CardValue, Deck, DeckType};
 use card_game_engine::error::CardGameError;
 use card_game_engine::player::Player;
-use crate::player::Partners;
+use crate::game::Partners;
 
 use std::collections::HashMap;
 
