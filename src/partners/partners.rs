@@ -9,10 +9,11 @@ enum TeamOpenStatus {
     Both,
 }
 
-#[derive(Clone, Copy, Debug)]
-pub enum PlayerAction {
-    PlayerA,
-    PlayerB,
+pub enum WhoOpened {
+    Both,
+    Me,
+    Partner,
+    Nobody,
 }
 
 #[derive(Debug)]
@@ -69,9 +70,47 @@ impl Partners {
         self.status
     }
 
-    // pub fn get_open_status_for(&self, player: usize) -> PlayerAction {
-    //     if self.get_status()
-    // }
+    pub fn who_opened(&self, i: usize) -> WhoOpened {
+        match self.get_status() {
+            TeamOpenStatus::Both => WhoOpened::Both,
+            TeamOpenStatus::PlayerA => {
+                if self.player_a_index == i {
+                    WhoOpened::Me
+                } else {
+                    WhoOpened::Partner
+                }
+            },
+            TeamOpenStatus::PlayerB => {
+                if self.player_b_index == i {
+                    WhoOpened::Me
+                } else {
+                    WhoOpened::Partner
+                }
+            },
+            TeamOpenStatus::None => WhoOpened::Nobody,
+        }
+    }
+
+    pub fn are_valid_points(&self, hand: &[Card]) -> bool {
+        let mut cards: HashMap<CardValue, usize> = HashMap::new();
+        for card in hand {
+            match cards.get_mut(&card.value) {
+                Some(v) => *v += 1,
+                None => {
+                    if card.value != CardValue::Joker { 
+                        cards.insert(card.value, 1);
+                    }
+                },
+            }          
+        }
+        for (k, v) in cards {
+            if self.points_deck.get(&k).is_none() && v <= 3 {
+                return false;
+            }
+        }
+        true
+    }
+
 
     pub fn get_partner(&self, player_index: usize) -> Option<usize> {
         if player_index == self.player_a_index {
