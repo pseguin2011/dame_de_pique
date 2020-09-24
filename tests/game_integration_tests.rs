@@ -1,7 +1,6 @@
 use card_game_engine::deck::{Card, CardValue, CardSuit, Deck, DeckType};
 use card_game_engine::player::Player;
 use card_game_engine::game::{Game};
-use card_game_engine::error::CardGameError;
 
 use dame_de_pique::game::{ DameDePiqueGameRunner, PlayerMove };
 use dame_de_pique::partners::{Partners};
@@ -71,83 +70,109 @@ fn player_b_open() -> Result<(), DameDePiqueError> {
     Ok(())
 }
 
-//     #[test]
-//     fn player_a_open_with_discard() {
-//         let mut deck = Deck::new(DeckType::WithJokers);
-//         let players = [
-//             Player::new("Player 1", vec![
-//                 Card {value: CardValue::Ace, suit: CardSuit::Spades},
-//                 Card {value: CardValue::Ace, suit: CardSuit::Hearts},
-//                 Card {value: CardValue::Ace, suit: CardSuit::Diamonds},
+    #[test]
+    fn player_a_open_with_discard() {
+        let mut deck = Deck::new(DeckType::WithJokers);
+        let players = vec![
+            Player::new("Player 1", vec![
+                Card {value: CardValue::Ace, suit: CardSuit::Spades},
+                Card {value: CardValue::Ace, suit: CardSuit::Hearts},
+                Card {value: CardValue::Ace, suit: CardSuit::Diamonds},
 
-//                 Card {value: CardValue::Three, suit: CardSuit::Spades},
-//                 Card {value: CardValue::Three, suit: CardSuit::Hearts},
-//                 Card {value: CardValue::Three, suit: CardSuit::Diamonds},
+                Card {value: CardValue::Three, suit: CardSuit::Spades},
+                Card {value: CardValue::Three, suit: CardSuit::Hearts},
+                Card {value: CardValue::Three, suit: CardSuit::Diamonds},
 
-//                 Card {value: CardValue::Ten, suit: CardSuit::Hearts},
-//                 Card {value: CardValue::Ten, suit: CardSuit::Diamonds},
-//             ]),
-//             Player::new("Player 2", vec![]),
-//             Player::new("Player 3", vec![]),
-//             Player::new("Player 4", vec![]),
-//         ];
+                Card {value: CardValue::Ten, suit: CardSuit::Hearts},
+                Card {value: CardValue::Ten, suit: CardSuit::Diamonds},
+            ]),
+        ];
         
-//         deck.discard_card(
-//             Card {value: CardValue::Four, suit: CardSuit::Spades});
+        deck.discard_card(
+            Card {value: CardValue::Ten, suit: CardSuit::Spades});
 
-//         let partners = [
-//             Partners::new(0, 1),
-//             Partners::new(2,3),
-//         ];
+        let mut partners = Partners::new(0, 1);
         
-//         let game = Game {
-//             players,
-//             partners,
-//             deck,
-//         };
+        let mut game = Game {
+            players,
+            deck,
+            turn: 0,
+        };
 
-//         assert!(game.player_can_open(&game.players[0].hand, true, &game.players[1]));
-//     }
+        let hand = game.players[0].hand.clone();
+        let runner = DameDePiqueGameRunner{
+            player_move: PlayerMove::Open(hand),
+            partners: &mut partners,
+        };
+        assert!(game.player_move(runner).is_err());
 
-//     #[test]
-//     fn player_b_open_with_discard() {
-//         let mut deck = Deck::new(DeckType::WithJokers);
-//         let mut players = [
-//             Player::new("Player 1", vec![
-//                 Card {value: CardValue::Seven, suit: CardSuit::Diamonds},
-//                 Card {value: CardValue::Seven, suit: CardSuit::Hearts},
-//             ]),
-//             Player::new("Player 2", vec![
-//                 Card {value: CardValue::Ace, suit: CardSuit::Spades},
-//                 Card {value: CardValue::Ace, suit: CardSuit::Hearts},
-//                 Card {value: CardValue::Ace, suit: CardSuit::Diamonds},
-//                 Card {value: CardValue::Three, suit: CardSuit::Spades},
-//                 Card {value: CardValue::Three, suit: CardSuit::Hearts},
-//                 Card {value: CardValue::Three, suit: CardSuit::Diamonds},
-//                 Card {value: CardValue::Four, suit: CardSuit::Spades},
-//                 Card {value: CardValue::Four, suit: CardSuit::Hearts},
-//                 Card {value: CardValue::Four, suit: CardSuit::Diamonds},
-//             ]),
-//             Player::new("Player 3", vec![]),
-//             Player::new("Player 4", vec![]),
-//         ];
+        let runner = DameDePiqueGameRunner{
+            player_move: PlayerMove::TakeDiscardPile,
+            partners: &mut partners,
+        };
+        assert!(game.player_move(runner).is_ok());
+
+        let hand = game.players[0].hand.clone();
+        let runner = DameDePiqueGameRunner{
+            player_move: PlayerMove::Open(hand),
+            partners: &mut partners,
+        };
+        assert!(game.player_move(runner).is_ok());
+    }
+
+    #[test]
+    fn player_b_open_with_discard() {
+        let mut deck = Deck::new(DeckType::WithJokers);
+        let mut players = vec![
+            Player::new("Player 1", vec![
+                Card {value: CardValue::Seven, suit: CardSuit::Diamonds},
+                Card {value: CardValue::Seven, suit: CardSuit::Hearts},
+            ]),
+            Player::new("Player 2", vec![
+                Card {value: CardValue::Ace, suit: CardSuit::Spades},
+                Card {value: CardValue::Ace, suit: CardSuit::Hearts},
+                Card {value: CardValue::Ace, suit: CardSuit::Diamonds},
+                Card {value: CardValue::Three, suit: CardSuit::Spades},
+                Card {value: CardValue::Three, suit: CardSuit::Hearts},
+                Card {value: CardValue::Three, suit: CardSuit::Diamonds},
+                Card {value: CardValue::Four, suit: CardSuit::Spades},
+                Card {value: CardValue::Four, suit: CardSuit::Hearts},
+                Card {value: CardValue::Four, suit: CardSuit::Diamonds},
+            ]),
+        ];
         
-//         deck.discard_card(
-//             Card {value: CardValue::Seven, suit: CardSuit::Diamonds});
+        deck.discard_card(
+            Card {value: CardValue::Seven, suit: CardSuit::Diamonds});
 
-//         let mut partners = [
-//             Partners::new(0, 1),
-//             Partners::new(2,3),
-//         ];
-        
-//         partners[0].update_status(1);
-//         partners[0].add_points(std::mem::take(&mut players[1].hand));
+        let mut partners = Partners::new(0, 1);
 
-//         let game = Game {
-//             players,
-//             partners,
-//             deck,
-//         };
+        let mut game = Game {
+            players,
+            deck,
+            turn: 1,
+        };
 
-//         assert!(game.player_can_open(&game.players[0].hand, true, &game.players[1]));
-//     }
+        let hand = game.players[1].hand.clone();
+        let runner = DameDePiqueGameRunner {
+            player_move: PlayerMove::Open(hand),
+            partners: &mut partners,
+        };
+
+        assert!(game.player_move(runner).is_ok());
+        game.end_turn();
+
+        let runner = DameDePiqueGameRunner {
+            player_move: PlayerMove::TakeDiscardPile,
+            partners: &mut partners,
+        };
+
+        assert!(game.player_move(runner).is_ok());
+
+        let hand = game.players[0].hand.clone();
+        let runner = DameDePiqueGameRunner {
+            player_move: PlayerMove::Open(hand),
+            partners: &mut partners,
+        };
+
+        assert!(game.player_move(runner).is_ok());
+    }

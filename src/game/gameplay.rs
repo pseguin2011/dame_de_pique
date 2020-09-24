@@ -1,5 +1,4 @@
 use card_game_engine::deck::{Card, CardValue, Deck, DeckType};
-use card_game_engine::error::{CardGameError, DefaultCardGameError};
 use card_game_engine::player::Player;
 use card_game_engine::game::{DefaultPlayerMoves, Game, GameBuilder, GameRunner};
 use crate::partners::{Partners, WhoOpened};
@@ -187,9 +186,8 @@ impl <'a> GameRunner<DameDePiqueError> for DameDePiqueGameRunner<'a> {
 }
 
 mod tests {
-    use card_game_engine::deck::{Card, CardValue, CardSuit, Deck, DeckType};
-    use card_game_engine::player::Player;
-    use card_game_engine::game::{Game, GameBuilder};
+    use card_game_engine::deck::{Card, CardValue, CardSuit};
+    use card_game_engine::game::{GameBuilder};
 
     use crate::game::{ DameDePiqueGameRunner, PlayerMove};
     use crate::partners::{ Partners, WhoOpened };
