@@ -1,14 +1,15 @@
-use card_game_engine::deck::{Card, CardValue, CardSuit, Deck, DeckType};
-use card_game_engine::player::Player;
-use card_game_engine::game::{Game};
+use card_game_engine::models::deck::{Card, CardValue, CardSuit, Deck, DeckType};
+use card_game_engine::models::player::Player;
+use card_game_engine::game::{Game, GameRunner, DefaultGameState};
 
-use dame_de_pique::game::{ DameDePiqueGameRunner, PlayerMove };
+use dame_de_pique::game::{ PlayerMove, DDPState, DameDePiqueGameBuilder};
 use dame_de_pique::partners::{Partners};
 use dame_de_pique::error::DameDePiqueError;
 
 #[test]
 fn player_b_open() -> Result<(), DameDePiqueError> {
 
+    let deck = Deck::new(DeckType::WithJokers);
     let players = vec![
         Player::new("Player 1", vec![
             Card {value: CardValue::Seven, suit: CardSuit::Clubs},
@@ -30,41 +31,26 @@ fn player_b_open() -> Result<(), DameDePiqueError> {
         ]),
     ];
 
-    let mut game = Game {
-        players,
-        deck: Deck::new(DeckType::WithJokers),
-        turn: 0,
+    let state = DDPState {
+        default_state: DefaultGameState {
+            players,
+            deck,
+            turn: 0,
+        },
+        partners: vec![Partners::new(0, 1)],
     };
 
-    let mut partners = Partners::new(0, 1);
-    let runner = DameDePiqueGameRunner {
-        player_move: PlayerMove::Draw,
-        partners: &mut partners,
-    };
+    let mut game = Game { state };
 
-    game.player_move(runner)?;
+    game.player_move(PlayerMove::Draw)?;
 
-    let hand = game.players[0].hand.clone();
-    let runner = DameDePiqueGameRunner {
-        player_move: PlayerMove::Open(hand),
-        partners: &mut partners,
-    };
-    assert!(game.player_move(runner).is_err());
+    let hand = game.state.default_state.players[0].hand.clone();
+    assert!(game.player_move(PlayerMove::Open(hand)).is_err());
     game.end_turn();
 
-    let runner = DameDePiqueGameRunner {
-        player_move: PlayerMove::Draw,
-        partners: &mut partners,
-    };
-
-    game.player_move(runner)?;
-
-    let hand = game.players[1].hand.clone();
-    let runner = DameDePiqueGameRunner {
-        player_move: PlayerMove::Open(hand),
-        partners: &mut partners,
-    };
-    assert!(game.player_move(runner).is_ok());
+    game.player_move(PlayerMove::Draw)?;
+    let hand = game.state.default_state.players[1].hand.clone();
+    assert!(game.player_move(PlayerMove::Open(hand)).is_ok());
 
 
     Ok(())
@@ -91,39 +77,32 @@ fn player_b_open() -> Result<(), DameDePiqueError> {
         deck.discard_card(
             Card {value: CardValue::Ten, suit: CardSuit::Spades});
 
-        let mut partners = Partners::new(0, 1);
-        
-        let mut game = Game {
-            players,
-            deck,
-            turn: 0,
+        let state = DDPState {
+            default_state: DefaultGameState {
+                players,
+                deck,
+                turn: 0,
+            },
+            partners: vec![Partners::new(0, 1)],
         };
 
-        let hand = game.players[0].hand.clone();
-        let runner = DameDePiqueGameRunner{
-            player_move: PlayerMove::Open(hand),
-            partners: &mut partners,
-        };
-        assert!(game.player_move(runner).is_err());
+        let mut game = Game { state };
 
-        let runner = DameDePiqueGameRunner{
-            player_move: PlayerMove::TakeDiscardPile,
-            partners: &mut partners,
-        };
-        assert!(game.player_move(runner).is_ok());
+        let hand = game.state.default_state.players[0].hand.clone();
 
-        let hand = game.players[0].hand.clone();
-        let runner = DameDePiqueGameRunner{
-            player_move: PlayerMove::Open(hand),
-            partners: &mut partners,
-        };
-        assert!(game.player_move(runner).is_ok());
+        assert!(game.player_move(PlayerMove::Open(hand)).is_err());
+
+        assert!(game.player_move(PlayerMove::TakeDiscardPile).is_ok());
+
+        let hand = game.state.default_state.players[0].hand.clone();
+        assert!(game.player_move(PlayerMove::Open(hand)).is_ok());
     }
+
 
     #[test]
     fn player_b_open_with_discard() {
         let mut deck = Deck::new(DeckType::WithJokers);
-        let mut players = vec![
+        let players = vec![
             Player::new("Player 1", vec![
                 Card {value: CardValue::Seven, suit: CardSuit::Diamonds},
                 Card {value: CardValue::Seven, suit: CardSuit::Hearts},
@@ -144,35 +123,25 @@ fn player_b_open() -> Result<(), DameDePiqueError> {
         deck.discard_card(
             Card {value: CardValue::Seven, suit: CardSuit::Diamonds});
 
-        let mut partners = Partners::new(0, 1);
-
-        let mut game = Game {
-            players,
-            deck,
-            turn: 1,
+        let state = DDPState {
+            default_state: DefaultGameState {
+                players,
+                deck,
+                turn: 1,
+            },
+            partners: vec![Partners::new(0, 1)],
         };
 
-        let hand = game.players[1].hand.clone();
-        let runner = DameDePiqueGameRunner {
-            player_move: PlayerMove::Open(hand),
-            partners: &mut partners,
-        };
+        let mut game = Game { state };
 
-        assert!(game.player_move(runner).is_ok());
+        let hand = game.state.default_state.players[1].hand.clone();
+
+        assert!(game.player_move(PlayerMove::Open(hand)).is_ok());
         game.end_turn();
 
-        let runner = DameDePiqueGameRunner {
-            player_move: PlayerMove::TakeDiscardPile,
-            partners: &mut partners,
-        };
+        assert!(game.player_move(PlayerMove::TakeDiscardPile).is_ok());
 
-        assert!(game.player_move(runner).is_ok());
+        let hand = game.state.default_state.players[0].hand.clone();
 
-        let hand = game.players[0].hand.clone();
-        let runner = DameDePiqueGameRunner {
-            player_move: PlayerMove::Open(hand),
-            partners: &mut partners,
-        };
-
-        assert!(game.player_move(runner).is_ok());
+        assert!(game.player_move(PlayerMove::Open(hand)).is_ok());
     }

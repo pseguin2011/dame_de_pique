@@ -1,4 +1,4 @@
-use card_game_engine::error::{CardGameError, DefaultCardGameError};
+use card_game_engine::error::{DefaultCardGameError};
 use std::{error as e, fmt};
 
 #[derive(Debug)]
@@ -36,9 +36,6 @@ impl e::Error for DameDePiqueError {
         }
     }
 }
-
-
-impl CardGameError for DameDePiqueError {}
 
 impl From<DefaultCardGameError> for DameDePiqueError {
     fn from(e: DefaultCardGameError) -> Self {

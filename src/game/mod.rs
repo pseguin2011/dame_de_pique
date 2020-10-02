@@ -1,2 +1,2 @@
 mod gameplay;
-pub use gameplay::{DameDePiqueGameBuilder, DameDePiqueGameRunner, PlayerMove};
+pub use gameplay::{DameDePiqueGameBuilder, DDPState, PlayerMove};

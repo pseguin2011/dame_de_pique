@@ -1,4 +1,4 @@
-use card_game_engine::deck::{CardValue, Card};
+use card_game_engine::models::deck::{CardValue, Card};
 use std::collections::HashMap;
 
 #[derive(Clone, Copy, Debug)]
