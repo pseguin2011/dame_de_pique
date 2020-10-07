@@ -158,7 +158,7 @@ mod tests {
     use card_game_engine::models::deck::{Card, CardValue, CardSuit};
     use card_game_engine::game::{GameBuilder};
 
-    use crate::game::{ PlayerMove};
+    use crate::gameplay::{ PlayerMove};
     use crate::partners::{ Partners, WhoOpened };
 
     #[test]
