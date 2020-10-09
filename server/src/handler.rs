@@ -5,6 +5,15 @@ use warp::{http::StatusCode, reply::json, Reply};
 
 use crate::models::{GameSessionListResponse, GameSession, GameSessions, Player, PlayerResponse, Players, RegisterGameRequest, RegisterPlayerRequest};
 
+/// Handler for game registration
+/// 
+/// ## Purpose
+/// Adds a game session to the list of games in the lobby
+/// 
+/// ## Arguments
+/// `body` - the game being registered
+/// `players` - persistent collection of players
+/// `sessions` - persistent collection of game sessions
 pub async fn register_game_handler(body: RegisterGameRequest, players: Players, sessions: GameSessions) -> Result<impl Reply> {
     let uuid = Uuid::new_v4().to_string();
     let url = format!("ws://127.0.0.1:8000/ws/{}", uuid);
@@ -12,6 +21,14 @@ pub async fn register_game_handler(body: RegisterGameRequest, players: Players, 
     Ok(json(&game_session))
 }
 
+/// Adds a game to the collection of game sessions
+/// 
+/// ## Arguments
+/// `game_id` - a unique game identifier
+/// `url` - the game url request when all players are ready to play
+/// `player_username` - the player creating the game session
+/// `players` - persistent collection of players
+/// `sessions` - persistent collection of the game sessions
 async fn register_game(game_id: String, url: String, player_username: String, players: Players, sessions: GameSessions) -> GameSession {
     let mut sessions = sessions.write().await;
     if let Some(mut player) = players.write().await.get_mut(&player_username) {
@@ -37,16 +54,37 @@ async fn register_game(game_id: String, url: String, player_username: String, pl
     game_session
 }
 
+/// Handler for the list of games in lobby
+/// 
+/// ## Purpose
+/// Returns the list of active game sessions
+/// 
+/// ## Arguments
+/// `sessions` - persistent collection of game sessions
 pub async fn get_lobby(sessions: GameSessions) -> Result<impl Reply> {
     let sessions = sessions.read().await;
     Ok(json(&GameSessionListResponse { games: sessions.values().cloned().collect() }))
 }
 
+/// Handler for players registering to the game
+/// 
+/// ## Purpose
+/// Adds the player to the list of players in the lobby
+/// 
+/// ## Arguments
+/// `body` - the player username being registered
+/// `players` - persistent collection of players
 pub async fn register_player_handler(body: RegisterPlayerRequest, players: Players) -> Result<impl Reply> {
+    println!("Registering player: {:?}", body);
     register_player(body.username, players).await;
     Ok(StatusCode::OK)
 }
 
+/// Adds the player to the collection of players
+/// 
+/// ## Arguments
+/// `username` - the player username being registered
+/// `players` - persistent collection of players
 async fn register_player(username: String, players: Players) {
     let mut players = players.write().await;
     players.insert(
@@ -65,15 +103,3 @@ pub async fn health_handler() -> Result<impl Reply> {
     Ok(StatusCode::OK)
 }
 
-pub async fn unregister_player_handler(username: String, players: Players, sessions: GameSessions) -> Result<impl Reply> {
-    let player = players.write().await.remove(&username);
-    let mut removed_player = None;
-    if let Some(player) = player {
-        if let Some(game_session_id) = player.inner.game_session_id {
-            if let Some(session) = sessions.write().await.get_mut(&game_session_id) {
-                removed_player = Some(session.players.remove(&username));
-            }
-        }
-    }
-    Ok(json(&removed_player))
-}
