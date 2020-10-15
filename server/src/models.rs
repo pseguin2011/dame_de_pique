@@ -26,6 +26,7 @@ pub struct GameSession {
 pub struct PlayerResponse {
     pub username: String,
     pub game_session_id: Option<String>,
+    pub websocket_url: String,
 }
 
 #[derive(Deserialize, Debug)]
@@ -43,3 +44,27 @@ pub struct RegisterGameRequest {
 pub struct GameSessionListResponse {
     pub games: Vec<GameSession>,
 }
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct StartGameRequest {
+    pub game_id: String,
+}
+
+#[derive(Serialize, Debug)]
+pub struct StartGameResponse;
+
+#[derive(Serialize, Debug, Clone)]
+pub struct WebSocketResponse<S: Serialize> {
+    pub response_type: String,
+    pub data: S,
+}
+
+
+/// Rejection messages
+#[derive(Debug)]
+pub struct TooManyPlayers;
+impl warp::reject::Reject for TooManyPlayers {}
+
+#[derive(Debug)]
+pub struct PlayerExists;
+impl warp::reject::Reject for PlayerExists {}
