@@ -1,14 +1,13 @@
 use std::collections::HashMap;
 use std::convert::Infallible;
 use std::sync::Arc;
-use tokio::sync::{RwLock};
+use tokio::sync::RwLock;
 use warp::{http::Method, Filter, Rejection};
 mod handler;
 mod models;
 mod ws;
 
 use models::{GameSessions, Players};
-
 type Result<T> = std::result::Result<T, Rejection>;
 
 #[tokio::main]
@@ -59,7 +58,6 @@ async fn main() {
         .allow_any_origin()
         .allow_header("content-type")
         .allow_methods(&[Method::GET, Method::POST, Method::DELETE]);
-    
     let routes = health_route
         .or(player_register_route)
         .or(game_register_route)
@@ -69,9 +67,12 @@ async fn main() {
         .with(cors);
 
     warp::serve(routes).run(([127, 0, 0, 1], 8000)).await;
+    // warp::serve(routes).run(([10, 0, 0, 153], 8000)).await;
 }
 
-fn with_game_sessions(game_sessions: GameSessions) -> impl Filter<Extract = (GameSessions,), Error = Infallible> + Clone {
+fn with_game_sessions(
+    game_sessions: GameSessions,
+) -> impl Filter<Extract = (GameSessions,), Error = Infallible> + Clone {
     warp::any().map(move || game_sessions.clone())
 }
 

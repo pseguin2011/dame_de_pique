@@ -1,38 +1,59 @@
-use crate::{Result};
+use crate::models::{
+    GameSession, GameSessionListResponse, GameSessions, Player, PlayerExists, PlayerResponse,
+    Players, RegisterGameRequest, RegisterPlayerRequest, StartGameRequest, StartGameResponse,
+    TooManyPlayers, WebSocketResponse,
+};
+use crate::Result;
 use std::collections::HashSet;
 use uuid::Uuid;
 use warp::http::StatusCode;
 use warp::reply::{json, Reply};
 use warp::ws::Message;
-use crate::models::{GameSessionListResponse, GameSession, GameSessions, Player, PlayerExists, PlayerResponse, Players, RegisterGameRequest, RegisterPlayerRequest, StartGameRequest, StartGameResponse, TooManyPlayers, WebSocketResponse};
 
-const SITE_URL: &str = "localhost";
+// const SITE_URL: &str = "10.0.0.153";
+
+const SITE_URL: &str = "192.168.2.101";
 const SITE_PORT: usize = 8000;
 /// Handler for game registration
-/// 
+///
 /// ## Purpose
 /// Adds a game session to the list of games in the lobby
-/// 
+///
 /// ## Arguments
 /// `body` - the game being registered
 /// `players` - persistent collection of players
 /// `sessions` - persistent collection of game sessions
-pub async fn register_game_handler(body: RegisterGameRequest, players: Players, sessions: GameSessions) -> Result<impl Reply> {
+pub async fn register_game_handler(
+    body: RegisterGameRequest,
+    players: Players,
+    sessions: GameSessions,
+) -> Result<impl Reply> {
     println!("Registering game: {:?}", body);
-    let game_session = register_game(body.game_identifier.clone(), body.player_username.clone(), players, sessions).await;
+    let game_session = register_game(
+        body.game_identifier.clone(),
+        body.player_username.clone(),
+        players,
+        sessions,
+    )
+    .await;
     println!("Game Session returned: {:?}", game_session);
     Ok(json(&game_session?))
 }
 
 /// Adds a game to the collection of game sessions
-/// 
+///
 /// ## Arguments
 /// `game_id` - a unique game identifier
 /// `url` - the game url request when all players are ready to play
 /// `player_username` - the player creating the game session
 /// `players` - persistent collection of players
 /// `sessions` - persistent collection of the game sessions
-async fn register_game(game_id: String, player_username: String, players: Players, sessions: GameSessions) -> Result<GameSession> {
+async fn register_game(
+    game_id: String,
+    player_username: String,
+    players: Players,
+    sessions: GameSessions,
+) -> Result<GameSession> {
     let mut sessions = sessions.write().await;
     if let Some(mut player) = players.write().await.get_mut(&player_username) {
         player.inner.game_session_id = Some(game_id.clone());
@@ -47,38 +68,30 @@ async fn register_game(game_id: String, player_username: String, players: Player
                 return Ok(session.clone());
             }
             if session.players.len() >= 4 {
-                return Err(warp::reject::custom(TooManyPlayers))
+                return Err(warp::reject::custom(TooManyPlayers));
             }
             session.players.insert(player_username);
-            players
-            .read()
-            .await
-            .iter()
-            .for_each(|(_, player)| {
+            players.read().await.iter().for_each(|(_, player)| {
                 if let Some(sender) = &player.sender {
-                    sender.send(
-                        Ok(
-                            Message::text(
-                                serde_json::to_string(
-                                    &WebSocketResponse {
-                                        response_type: "GameSession".into(),
-                                        data: session.clone(),
-                                    }
-                                ).unwrap()
-                            )
-                        )
-                    ).unwrap();
+                    sender
+                        .send(Ok(Message::text(
+                            serde_json::to_string(&WebSocketResponse {
+                                response_type: "GameSession".into(),
+                                data: session.clone(),
+                            })
+                            .unwrap(),
+                        )))
+                        .unwrap();
                 }
             });
 
-
             Ok(session.clone())
-        },
+        }
         None => {
             let url = format!("ws://127.0.0.1:8000/ws/{}", game_id);
             let mut players = HashSet::new();
             players.insert(player_username);
-            
+
             let game_session = GameSession {
                 game_id: game_id.clone(),
                 players,
@@ -86,43 +99,45 @@ async fn register_game(game_id: String, player_username: String, players: Player
                 url,
             };
 
-            sessions.insert(
-                game_id.clone(),
-                game_session.clone(),
-            );
+            sessions.insert(game_id.clone(), game_session.clone());
             Ok(game_session)
-        },
+        }
     }
 }
 
 /// Handler for the list of games in lobby
-/// 
+///
 /// ## Purpose
 /// Returns the list of active game sessions
-/// 
+///
 /// ## Arguments
 /// `sessions` - persistent collection of game sessions
 pub async fn get_lobby(sessions: GameSessions) -> Result<impl Reply> {
     let sessions = sessions.read().await;
-    Ok(json(&GameSessionListResponse { games: sessions.values().cloned().collect() }))
+    Ok(json(&GameSessionListResponse {
+        games: sessions.values().cloned().collect(),
+    }))
 }
 
 /// Handler for players registering to the game
-/// 
+///
 /// ## Purpose
 /// Adds the player to the list of players in the lobby
-/// 
+///
 /// ## Arguments
 /// `body` - the player username being registered
 /// `players` - persistent collection of players
-pub async fn register_player_handler(body: RegisterPlayerRequest, players: Players) -> Result<impl Reply> {
+pub async fn register_player_handler(
+    body: RegisterPlayerRequest,
+    players: Players,
+) -> Result<impl Reply> {
     println!("Registering player: {:?}", body);
     let player_response = register_player(body.username, players).await?;
     Ok(json(&player_response))
 }
 
 /// Adds the player to the collection of players
-/// 
+///
 /// ## Arguments
 /// `username` - the player username being registered
 /// `players` - persistent collection of players
@@ -135,7 +150,7 @@ async fn register_player(username: String, players: Players) -> Result<PlayerRes
     let player_response = PlayerResponse {
         username: username.clone(),
         game_session_id: None,
-        websocket_url: format!("ws://{}:{}/ws/{}", SITE_URL, SITE_PORT, username)
+        websocket_url: format!("ws://{}:{}/ws/{}", SITE_URL, SITE_PORT, username),
     };
     players.insert(
         username.clone(),
@@ -148,28 +163,25 @@ async fn register_player(username: String, players: Players) -> Result<PlayerRes
     Ok(player_response)
 }
 
-pub async fn start_game_handler(body: StartGameRequest, players: Players, sessions: GameSessions) -> Result<impl Reply> {
+pub async fn start_game_handler(
+    body: StartGameRequest,
+    players: Players,
+    sessions: GameSessions,
+) -> Result<impl Reply> {
     println!("Starting Game {}", body.game_id);
-    players
-        .read()
-        .await
-        .iter()
-        .for_each(|(_, player)| {
-            if let Some(sender) = &player.sender {
-                sender.send(
-                    Ok(
-                        Message::text(
-                            serde_json::to_string(
-                                &WebSocketResponse {
-                                    response_type: "StartGameResponse".into(),
-                                    data: StartGameResponse {},
-                                }
-                            ).unwrap()
-                        )
-                    )
-                ).unwrap();
-            }
-        });
+    players.read().await.iter().for_each(|(_, player)| {
+        if let Some(sender) = &player.sender {
+            sender
+                .send(Ok(Message::text(
+                    serde_json::to_string(&WebSocketResponse {
+                        response_type: "StartGameResponse".into(),
+                        data: StartGameResponse {},
+                    })
+                    .unwrap(),
+                )))
+                .unwrap();
+        }
+    });
     // sessions
     //     .read()
     //     .await
@@ -189,21 +201,29 @@ pub async fn start_game_handler(body: StartGameRequest, players: Players, sessio
     Ok(StatusCode::OK)
 }
 
-pub async fn ws_handler(ws: warp::ws::Ws, player_id: String, players: Players) ->  Result<impl Reply> {
+pub async fn ws_handler(
+    ws: warp::ws::Ws,
+    player_id: String,
+    players: Players,
+) -> Result<impl Reply> {
     println!("Websocket Request for: user {}", player_id);
     let player = players.read().await.get(&player_id).cloned();
     match player {
-        Some(c) => Ok(ws.on_upgrade(move |socket| crate::ws::client_connection(socket, player_id, players, c))),
+        Some(c) => Ok(ws
+            .on_upgrade(move |socket| crate::ws::client_connection(socket, player_id, players, c))),
         None => Err(warp::reject::not_found()),
     }
 }
-
 
 pub async fn health_handler() -> Result<impl Reply> {
     Ok(StatusCode::OK)
 }
 
-pub async fn unregister_player_handler(username: String, players: Players, sessions: GameSessions) -> Result<impl Reply> {
+pub async fn unregister_player_handler(
+    username: String,
+    players: Players,
+    sessions: GameSessions,
+) -> Result<impl Reply> {
     let player = players.write().await.remove(&username);
     let mut removed_player = None;
     if let Some(player) = player {

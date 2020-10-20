@@ -1,11 +1,16 @@
+use crate::models::{Player, Players};
 use futures::{FutureExt, StreamExt};
 use serde::Deserialize;
 use serde_json::from_str;
 use tokio::sync::mpsc;
 use warp::ws::{Message, WebSocket};
-use crate::models::{Player, Players};
 
-pub async fn client_connection(ws: WebSocket, player_id: String, clients: Players, mut client: Player) {
+pub async fn client_connection(
+    ws: WebSocket,
+    player_id: String,
+    clients: Players,
+    mut client: Player,
+) {
     let (client_ws_sender, mut client_ws_rcv) = ws.split();
     let (client_sender, client_rcv) = mpsc::unbounded_channel();
 
@@ -21,11 +26,14 @@ pub async fn client_connection(ws: WebSocket, player_id: String, clients: Player
     println!("{} connected", player_id);
 
     while let Some(result) = client_ws_rcv.next().await {
-
         let msg = match result {
             Ok(msg) => msg,
             Err(e) => {
-                eprintln!("error receiving ws message for id: {}): {}", player_id.clone(), e);
+                eprintln!(
+                    "error receiving ws message for id: {}): {}",
+                    player_id.clone(),
+                    e
+                );
                 break;
             }
         };
