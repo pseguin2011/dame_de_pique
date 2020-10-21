@@ -1,4 +1,4 @@
-use card_game_engine::models::deck::{CardValue, Card};
+use card_game_engine::models::deck::{Card, CardValue};
 use std::collections::HashMap;
 
 #[derive(Clone, Copy, Debug)]
@@ -16,11 +16,11 @@ pub enum WhoOpened {
     Nobody,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Partners {
     player_a_index: usize,
     player_b_index: usize,
-    points_deck: HashMap<CardValue, Vec<Card>>,
+    pub points_deck: HashMap<CardValue, Vec<Card>>,
     status: TeamOpenStatus,
 }
 
@@ -38,7 +38,9 @@ impl Partners {
         for card in cards {
             match self.points_deck.get_mut(&card.value) {
                 Some(v) => v.push(card),
-                None => { self.points_deck.insert(card.value, vec![card]); },
+                None => {
+                    self.points_deck.insert(card.value, vec![card]);
+                }
             }
         }
     }
@@ -55,14 +57,14 @@ impl Partners {
         }
 
         match (status, &self.status) {
-            (TeamOpenStatus::PlayerA, TeamOpenStatus::PlayerB) |
-            (TeamOpenStatus::PlayerB, TeamOpenStatus::PlayerA) => {
+            (TeamOpenStatus::PlayerA, TeamOpenStatus::PlayerB)
+            | (TeamOpenStatus::PlayerB, TeamOpenStatus::PlayerA) => {
                 self.status = TeamOpenStatus::Both
-            },
+            }
             (s, TeamOpenStatus::None) => {
                 self.status = s;
             }
-            _ => {},
+            _ => {}
         }
     }
 
@@ -79,14 +81,14 @@ impl Partners {
                 } else {
                     WhoOpened::Partner
                 }
-            },
+            }
             TeamOpenStatus::PlayerB => {
                 if self.player_b_index == i {
                     WhoOpened::Me
                 } else {
                     WhoOpened::Partner
                 }
-            },
+            }
             TeamOpenStatus::None => WhoOpened::Nobody,
         }
     }
@@ -97,11 +99,11 @@ impl Partners {
             match cards.get_mut(&card.value) {
                 Some(v) => *v += 1,
                 None => {
-                    if card.value != CardValue::Joker { 
+                    if card.value != CardValue::Joker {
                         cards.insert(card.value, 1);
                     }
-                },
-            }          
+                }
+            }
         }
         for (k, v) in cards {
             if self.points_deck.get(&k).is_none() && v <= 3 {
@@ -110,7 +112,6 @@ impl Partners {
         }
         true
     }
-
 
     pub fn get_partner(&self, player_index: usize) -> Option<usize> {
         if player_index == self.player_a_index {
@@ -123,49 +124,67 @@ impl Partners {
     }
 }
 
-
 #[test]
 fn test_status() {
-    let mut partners = Partners::new(0,1);
+    let mut partners = Partners::new(0, 1);
     partners.update_status(0);
     match partners.get_status() {
-        TeamOpenStatus::PlayerA => {},
+        TeamOpenStatus::PlayerA => {}
         _ => {
-            panic!("Assertion failed, got {:?}, expected {:?}", partners.get_status(), TeamOpenStatus::PlayerA);
-        },
+            panic!(
+                "Assertion failed, got {:?}, expected {:?}",
+                partners.get_status(),
+                TeamOpenStatus::PlayerA
+            );
+        }
     }
 
     partners.update_status(1);
     match partners.get_status() {
-        TeamOpenStatus::Both => {},
+        TeamOpenStatus::Both => {}
         _ => {
-            panic!("Assertion failed, got {:?}, expected {:?}", partners.get_status(), TeamOpenStatus::Both);
-        },
+            panic!(
+                "Assertion failed, got {:?}, expected {:?}",
+                partners.get_status(),
+                TeamOpenStatus::Both
+            );
+        }
     }
 
-    let mut partners = Partners::new(0,1);
+    let mut partners = Partners::new(0, 1);
     partners.update_status(1);
     match partners.get_status() {
-        TeamOpenStatus::PlayerB => {},
+        TeamOpenStatus::PlayerB => {}
         _ => {
-            panic!("Assertion failed, got {:?}, expected {:?}", partners.get_status(), TeamOpenStatus::PlayerB);
-        },
+            panic!(
+                "Assertion failed, got {:?}, expected {:?}",
+                partners.get_status(),
+                TeamOpenStatus::PlayerB
+            );
+        }
     }
 
     partners.update_status(1);
     match partners.get_status() {
-        TeamOpenStatus::PlayerB => {},
+        TeamOpenStatus::PlayerB => {}
         _ => {
-            panic!("Assertion failed, got {:?}, expected {:?}", partners.get_status(), TeamOpenStatus::PlayerB);
-        },
+            panic!(
+                "Assertion failed, got {:?}, expected {:?}",
+                partners.get_status(),
+                TeamOpenStatus::PlayerB
+            );
+        }
     }
 
     partners.update_status(0);
     match partners.get_status() {
-        TeamOpenStatus::Both => {},
+        TeamOpenStatus::Both => {}
         _ => {
-            panic!("Assertion failed, got {:?}, expected {:?}", partners.get_status(), TeamOpenStatus::Both);
-        },
+            panic!(
+                "Assertion failed, got {:?}, expected {:?}",
+                partners.get_status(),
+                TeamOpenStatus::Both
+            );
+        }
     }
-
 }
