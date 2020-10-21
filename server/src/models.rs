@@ -1,8 +1,8 @@
+use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use tokio::sync::{mpsc, RwLock};
-use serde::{Deserialize, Serialize};
-use warp::{ws::Message};
+use warp::ws::Message;
 
 pub type GameSessions = Arc<RwLock<HashMap<String, GameSession>>>;
 pub type Players = Arc<RwLock<HashMap<String, Player>>>;
@@ -13,13 +13,16 @@ pub struct Player {
     pub inner: PlayerResponse,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone)]
 pub struct GameSession {
+    pub inner: GameResponse,
+    pub state: game::gameplay::DDPState,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct GameResponse {
     pub game_id: String,
-    // list of usernames for players
     pub players: HashSet<String>,
-    pub max_capacity: usize,
-    pub url: String,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -42,7 +45,7 @@ pub struct RegisterGameRequest {
 
 #[derive(Serialize, Debug)]
 pub struct GameSessionListResponse {
-    pub games: Vec<GameSession>,
+    pub games: Vec<GameResponse>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -58,7 +61,6 @@ pub struct WebSocketResponse<S: Serialize> {
     pub response_type: String,
     pub data: S,
 }
-
 
 /// Rejection messages
 #[derive(Debug)]

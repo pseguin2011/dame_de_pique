@@ -3,6 +3,7 @@ use std::convert::Infallible;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use warp::{http::Method, Filter, Rejection};
+mod gameplay;
 mod handler;
 mod models;
 mod ws;

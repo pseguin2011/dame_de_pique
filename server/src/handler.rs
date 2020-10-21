@@ -1,11 +1,10 @@
 use crate::models::{
-    GameSession, GameSessionListResponse, GameSessions, Player, PlayerExists, PlayerResponse,
-    Players, RegisterGameRequest, RegisterPlayerRequest, StartGameRequest, StartGameResponse,
-    TooManyPlayers, WebSocketResponse,
+    GameResponse, GameSession, GameSessionListResponse, GameSessions, Player, PlayerExists,
+    PlayerResponse, Players, RegisterGameRequest, RegisterPlayerRequest, StartGameRequest,
+    StartGameResponse, TooManyPlayers, WebSocketResponse,
 };
 use crate::Result;
 use std::collections::HashSet;
-use uuid::Uuid;
 use warp::http::StatusCode;
 use warp::reply::{json, Reply};
 use warp::ws::Message;
@@ -53,7 +52,7 @@ async fn register_game(
     player_username: String,
     players: Players,
     sessions: GameSessions,
-) -> Result<GameSession> {
+) -> Result<GameResponse> {
     let mut sessions = sessions.write().await;
     if let Some(mut player) = players.write().await.get_mut(&player_username) {
         player.inner.game_session_id = Some(game_id.clone());
@@ -64,20 +63,20 @@ async fn register_game(
 
     match sessions.get_mut(&game_id) {
         Some(session) => {
-            if session.players.contains(&player_username) {
-                return Ok(session.clone());
+            if session.inner.players.contains(&player_username) {
+                return Ok(session.inner.clone());
             }
-            if session.players.len() >= 4 {
+            if session.inner.players.len() >= 4 {
                 return Err(warp::reject::custom(TooManyPlayers));
             }
-            session.players.insert(player_username);
+            session.inner.players.insert(player_username);
             players.read().await.iter().for_each(|(_, player)| {
                 if let Some(sender) = &player.sender {
                     sender
                         .send(Ok(Message::text(
                             serde_json::to_string(&WebSocketResponse {
                                 response_type: "GameSession".into(),
-                                data: session.clone(),
+                                data: session.inner.clone(),
                             })
                             .unwrap(),
                         )))
@@ -85,22 +84,27 @@ async fn register_game(
                 }
             });
 
-            Ok(session.clone())
+            Ok(session.inner.clone())
         }
         None => {
-            let url = format!("ws://127.0.0.1:8000/ws/{}", game_id);
             let mut players = HashSet::new();
             players.insert(player_username);
 
-            let game_session = GameSession {
+            let game_response = GameResponse {
                 game_id: game_id.clone(),
                 players,
-                max_capacity: 4,
-                url,
+            };
+            let game_session = GameSession {
+                inner: game_response.clone(),
+                state: game::Game::<game::gameplay::DDPState>::new_game::<
+                    game::gameplay::DameDePiqueGameBuilder,
+                >()
+                .unwrap()
+                .state,
             };
 
-            sessions.insert(game_id.clone(), game_session.clone());
-            Ok(game_session)
+            sessions.insert(game_id.clone(), game_session);
+            Ok(game_response)
         }
     }
 }
@@ -115,7 +119,7 @@ async fn register_game(
 pub async fn get_lobby(sessions: GameSessions) -> Result<impl Reply> {
     let sessions = sessions.read().await;
     Ok(json(&GameSessionListResponse {
-        games: sessions.values().cloned().collect(),
+        games: sessions.values().cloned().map(|v| v.inner).collect(),
     }))
 }
 
@@ -229,7 +233,7 @@ pub async fn unregister_player_handler(
     if let Some(player) = player {
         if let Some(game_session_id) = player.inner.game_session_id {
             if let Some(session) = sessions.write().await.get_mut(&game_session_id) {
-                removed_player = Some(session.players.remove(&username));
+                removed_player = Some(session.inner.players.remove(&username));
             }
         }
     }
