@@ -55,6 +55,11 @@ async fn main() {
         .and(with_players(players.clone()))
         .and_then(handler::ws_handler);
 
+    let gameplay_route = warp::path("game-state")
+        .and(warp::query::<HashMap<String, String>>())
+        .and(with_game_sessions(sessions.clone()))
+        .and_then(gameplay::gameplay_handlers::get_game_state_handler);
+
     let cors = warp::cors()
         .allow_any_origin()
         .allow_header("content-type")
@@ -65,6 +70,7 @@ async fn main() {
         .or(lobby_route)
         .or(ws_route)
         .or(start_game_route)
+        .or(gameplay_route)
         .with(cors);
 
     warp::serve(routes).run(([127, 0, 0, 1], 8000)).await;
