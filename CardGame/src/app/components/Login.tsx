@@ -11,7 +11,7 @@ const config: Config = {
   style: 'capital'
 }
 
-export class Login extends Component {
+export default class Login extends Component {
   state: Player;
   host = '192.168.2.101';
   port = 8000;
