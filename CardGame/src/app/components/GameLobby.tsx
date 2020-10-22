@@ -3,19 +3,21 @@ import { useRoute } from '@react-navigation/native';
 import { View, Text, StyleProp, ViewStyle, Button } from "react-native";
 import { FlatList } from "react-native-gesture-handler";
 
-type Player = {username: string};
-type ConnectedPlayers ={connected_players: Player[]};
+type GameSession = {game_id: string, players: string[]}
 type WebSocketResponse = {response_type: string, data: any};
 
 class GameLobby extends Component {
+  state: GameSession;
   socket: WebSocket | undefined;
+  name: string;
   host = '192.168.2.101';
   port = 8000;
 
   constructor(props: {route: any, navigation: any}) {
     super(props);
-    this.state = {connected_players: []};
+    this.state = {game_id: '1', players: []};
     this.socket;
+    this.name = props.route.params.username;
     this.connectToGame(props.route.params.username);
     this.connectWebSocket(props.route.params.websocket_url);
   }
@@ -28,17 +30,17 @@ class GameLobby extends Component {
     };
     return <View style={{flex: 1, height: 2, alignContent: 'flex-start', flexDirection:'row'}}>
           <View style={{ backgroundColor: '#DAD7D7', width: '50%', height: '100%', padding: 10}}>
-          <Text style={{fontWeight: 'bold', padding: 10}}> Joined Players ({(this.state as ConnectedPlayers).connected_players.length}/4)</Text>
+          <Text style={{fontWeight: 'bold', padding: 10}}> Joined Players ({this.state.players.length}/4)</Text>
           <FlatList
-            data={(this.state as ConnectedPlayers).connected_players}
-            renderItem={({item}: {item: Player})=>(
+            data={this.state.players}
+            renderItem={({item}: {item: string})=>(
               <View style={player_list_style}>
-                <Text style={{textAlign: 'center', fontWeight: 'bold', fontSize: 20}}>{item.username}</Text>
+                <Text style={{textAlign: 'center', fontWeight: 'bold', fontSize: 20}}>{item}</Text>
               </View>
             )}
           />
           <Button 
-            disabled={(this.state as ConnectedPlayers).connected_players.length < 4}
+            disabled={this.state.players.length < 4}
             onPress={
               async () => {
                 this.startGame()
@@ -63,8 +65,13 @@ class GameLobby extends Component {
           this.updatePlayers(json.data['players']);
           break;
         case "StartGameResponse":
-          // const {navigation} = (this.props as {navigation: any});
-          // navigation.navigate('Game');
+          const {navigation} = (this.props as {navigation: any});
+          navigation.push('Game', {
+            game_id:    this.state.game_id,
+            websocket:  this.socket,
+            player_id:  this.state.players.indexOf(this.name)
+          });
+          navigation.navigate('Game');
           break;
       }
     };
@@ -93,8 +100,8 @@ class GameLobby extends Component {
     }).catch((e) => {alert("Could not join the game, room must be full."); throw e;} )
     .then((response) => response.json())
     .then((json: { game_id: string, players: [string], max_capacity: number, url: string} ) => {
-      (this.state as ConnectedPlayers).connected_players = [];
-      json.players.forEach(element => (this.state as ConnectedPlayers).connected_players.push({username: element}));
+      this.state.players = [];
+      json.players.forEach(element => this.state.players.push(element));
       this.forceUpdate();
     });
   }
@@ -112,10 +119,8 @@ class GameLobby extends Component {
     }).catch((e) => {alert("Could not start the game."); throw e;} );
   }
 
-  updatePlayers(players: any) {
-    let mapped_players = players.map((player: string) => { return {username: player} });
-    (this.state as ConnectedPlayers).connected_players = [];
-    mapped_players.forEach((element: Player) => (this.state as ConnectedPlayers).connected_players.push(element));
+  updatePlayers(players: string[]) {
+    this.state.players = players;
     this.forceUpdate();
   }
 }
