@@ -60,6 +60,18 @@ async fn main() {
         .and(with_game_sessions(sessions.clone()))
         .and_then(gameplay::gameplay_handlers::get_game_state_handler);
 
+    let game_action_draw_route = warp::path("draw-card")
+        .and(warp::query::<HashMap<String, String>>())
+        .and(with_game_sessions(sessions.clone()))
+        .and_then(gameplay::gameplay_handlers::draw_card_handler);
+
+    let game_action_discard_route = warp::path("discard-card")
+        .and(warp::post())
+        .and(warp::body::json())
+        .and(with_players(players.clone()))
+        .and(with_game_sessions(sessions.clone()))
+        .and_then(gameplay::gameplay_handlers::discard_handler);
+
     let cors = warp::cors()
         .allow_any_origin()
         .allow_header("content-type")
@@ -71,6 +83,8 @@ async fn main() {
         .or(ws_route)
         .or(start_game_route)
         .or(gameplay_route)
+        .or(game_action_draw_route)
+        .or(game_action_discard_route)
         .with(cors);
 
     warp::serve(routes).run(([127, 0, 0, 1], 8000)).await;

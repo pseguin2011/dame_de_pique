@@ -1,8 +1,14 @@
 use game::gameplay::DDPState;
 use game::CardValue;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use std::collections::HashMap;
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct GameDiscardRequest {
+    pub game_id: String,
+    pub card_index: usize,
+}
 
 #[derive(Clone, Debug, Serialize)]
 pub struct PlayerGameStateResponse {

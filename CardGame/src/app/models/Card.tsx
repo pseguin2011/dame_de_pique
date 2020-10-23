@@ -9,8 +9,7 @@ const card_style: ViewStyle = {
     width: 80, 
     height: 100,
     backgroundColor: 'white',
-    margin: 5,
-    marginRight: -40,
+    margin: 10,
 };
 const card_value_style: TextStyle = {
     position: 'absolute',
@@ -62,15 +61,29 @@ export type CARD_SUIT = 'Spades'|'Diamonds'|'Hearts'|'Clubs'|'Red'|'Black';
 export type CARD_VALUE = 'A'|'2'|'3'|'4'|'5'|'6'|'7'|'8'|'9'|'10'|'J'|'Q'|'K'|'Joker';
 
 export class Card extends Component {
-    props: {suit: CARD_SUIT, value: CARD_VALUE} = {suit: 'Black', value: '3'};
+    props: {suit?: CARD_SUIT, value?: CARD_VALUE, onChange?: any, id?: number} = {suit: undefined, value: undefined, onChange: undefined, id: undefined };
     state: {selected: boolean} = {selected: false};
-     
+    isSelected(): boolean {
+        return this.state.selected;
+    }
+    
     render() {
         let value = this.props.value;
-        let suit = SUIT[this.props.suit];
-        
-        return <Pressable onPress={async () =>{this.state.selected = !this.state.selected; this.forceUpdate()}}>
-            <View style={card_style}>
+        let suit_name = this.props.suit;
+        var suit;
+        if (suit_name) {
+            suit = SUIT[suit_name];
+        } else {
+            suit = SUIT['Black'];
+        }
+
+        return <Pressable onPress={() =>{
+            this.state.selected = !this.state.selected;
+            this.props.onChange(this.props.id);
+            this.forceUpdate();
+            }
+        }>
+            <View style={(this.state.selected)?{top: -10,...card_style}:card_style}>
                 <View style={(this.state.selected)?{opacity: 0.5, width: '100%', height: '100%'}:{width: '100%', height: '100%'} }>
                     <Text style={card_value_top_left_style}>{value}</Text>
                     <View style={suit_logo_style}>
@@ -81,6 +94,5 @@ export class Card extends Component {
             </View>
         </Pressable>;
     }
-    
 }
   
