@@ -13,7 +13,7 @@ const config: Config = {
 
 export default class Login extends Component {
   state: Player;
-  host = '192.168.2.101';
+  host = '10.0.0.153';
   port = 8000;
   constructor(props: any) {
     super(props);

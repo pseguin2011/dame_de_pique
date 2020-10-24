@@ -9,9 +9,7 @@ use warp::http::StatusCode;
 use warp::reply::{json, Reply};
 use warp::ws::Message;
 
-// const SITE_URL: &str = "10.0.0.153";
-
-const SITE_URL: &str = "192.168.2.101";
+const SITE_URL: &str = "10.0.0.153";
 const SITE_PORT: usize = 8000;
 /// Handler for game registration
 ///

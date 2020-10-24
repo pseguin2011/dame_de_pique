@@ -48,17 +48,14 @@ const DECK_CONTAINER_VIEW_STYLE: ViewStyle = {
 
 
 type GameState = {
-  game_id: String,
-  socket: WebSocket,
-  player_id: number,
   selected: boolean[],
+  did_draw: boolean,
   game_state: {
     player_hand: Card[],
     team1_points: Card[],
     team2_points: Card[],
     top_discard?: JSX.Element,
     turn: number,
-    did_open: boolean,
   },
 };
 
@@ -84,18 +81,21 @@ type WebSocketResponse = {response_type: string, data: any};
 
 export class Game extends Component {
   state: GameState;
-  host = '192.168.2.101';
+  host = '10.0.0.153';
   port = 8000;
+  game_id: String;
+  socket: WebSocket;
+  player_id: number;
   constructor(props: any) {
     super(props);
     this.updateSelections = this.updateSelections.bind(this);
-    this.state = {
-      game_id: props.route.params.game_id,
-      socket: props.route.params.websocket,
-      player_id: props.route.params.player_id,
+    this.game_id = props.route.params.game_id;
+    this.socket = props.route.params.websocket;
+    this.player_id = props.route.params.player_id;
+    this.state = { 
       selected: [],
+      did_draw: false,
       game_state: {
-        did_open: false,
         player_hand: [],
         team1_points: [],
         team2_points: [],
@@ -103,7 +103,7 @@ export class Game extends Component {
         turn: 0,
       },
     };
-    this.state.socket.onmessage = (e) => {
+    this.socket.onmessage = (e) => {
       let json: WebSocketResponse = JSON.parse(e.data);
       switch (json.response_type) {
         case "GameState":
@@ -115,7 +115,6 @@ export class Game extends Component {
   }
   setDefaultGameState() {
     this.state.game_state = {
-      did_open: false,
       player_hand: [],
       team1_points: [],
       team2_points: [],
@@ -126,7 +125,7 @@ export class Game extends Component {
   }
 
   async updateGameState() {
-    fetch('http://' + this.host + ':' + this.port + '/game-state/?game-id=' + this.state.game_id + '&player=' + this.state.player_id, {
+    fetch('http://' + this.host + ':' + this.port + '/game-state/?game-id=' + this.game_id + '&player=' + this.player_id, {
       method: "GET",
       headers: {
         Accept: 'application/json',
@@ -138,7 +137,6 @@ export class Game extends Component {
       this.setDefaultGameState();
       let top_card = <Card {... this.props} value={json.top_discard.value} suit={json.top_discard.suit} id={-1}/>;
       this.state.game_state = {
-        did_open: false,
         player_hand: json.player_hand.map((card: any, index: number) => <Card onChange={this.updateSelections} {... this.props} id={index} value={card.value} suit={card.suit}/>),
         team1_points: json.team1_points,
         team2_points: json.team2_points,
@@ -209,31 +207,59 @@ export class Game extends Component {
         <View style={GAME_ACTIONS_STYLE}>
           <View style={GAME_ACTION_STYLE}>
             <Button
-              disabled={this.state.player_id != this.state.game_state.turn}
+              disabled={this.player_id != this.state.game_state.turn || this.state.did_draw}
               title="Draw Card"
               color="#678547"
-              onPress={async()=>{ await this.drawCardAction()}}/>
+              onPress={async()=>{ await this.drawCardAction(); this.state.did_draw = true;}}/>
           </View>
           <View style={GAME_ACTION_STYLE}>
             <Button
-              disabled={this.state.player_id != this.state.game_state.turn}
+              disabled={
+                this.player_id != this.state.game_state.turn ||
+                this.state.did_draw
+              }
               title="Pickup Deck"
               color="#678547"
-              onPress={async()=>{}}/>
+              onPress={async()=>{
+                if (this.getSelectedCards().length != 8) {
+                  alert("EXACTLY 8 cards must be selected to pickup the deck");
+                  return;
+                }
+                this.state.did_draw = true;
+                this.forceUpdate();
+              }}/>
           </View>
           <View style={GAME_ACTION_STYLE}>
             <Button
-              disabled={this.state.player_id != this.state.game_state.turn}
-              title="Open / Add Points"
+              disabled={
+                this.player_id != this.state.game_state.turn ||
+                !this.state.did_draw
+              }
+              title="Open"
+              color="#678547"
+              onPress={async()=>{
+                this.forceUpdate();
+              }}/>
+          </View>
+          <View style={GAME_ACTION_STYLE}>
+            <Button
+              disabled={
+                this.player_id != this.state.game_state.turn ||
+                !this.state.did_draw
+              }
+              title="Add Points"
               color="#678547"
               onPress={async()=>{}}/>
           </View>
           <View style={GAME_ACTION_STYLE}>
             <Button
-              disabled={this.state.player_id != this.state.game_state.turn}
+              disabled={
+                this.player_id != this.state.game_state.turn ||
+                !this.state.did_draw
+              }
               title="Discard"
               color="#678547"
-              onPress={async()=>{await this.discardAction()}}/>
+              onPress={async()=>{await this.discardAction(); this.state.did_draw = false;}}/>
           </View>
         </View>
       </View>;
@@ -247,7 +273,7 @@ export class Game extends Component {
   }
 
   async drawCardAction() {
-    await fetch('http://' + this.host + ':' + this.port + '/draw-card/?game-id=' + this.state.game_id + '&player=' + this.state.player_id, {
+    await fetch('http://' + this.host + ':' + this.port + '/draw-card/?game-id=' + this.game_id + '&player=' + this.player_id, {
       method: "GET",
     }).catch((e) => {alert("Could not draw a card, an error occured."); throw e;} )
     .then((_) => {
@@ -269,7 +295,7 @@ export class Game extends Component {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(
-        {'game_id': this.state.game_id, 'card_index': selected_indices[0]}
+        {'game_id': this.game_id, 'card_index': selected_indices[0]}
       )
     }).catch((e) => {alert("Could not discard "); throw e;} )
     .then((_) => {
@@ -292,7 +318,7 @@ export class Game extends Component {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(
-        {'game_id': this.state.game_id, 'card_index': selected_indices[0]}
+        {'game_id': this.game_id, 'card_index': selected_indices[0]}
       )
     }).catch((e) => {alert("Could not discard "); throw e;} )
     .then((_) => {

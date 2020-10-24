@@ -10,7 +10,7 @@ class GameLobby extends Component {
   state: GameSession;
   socket: WebSocket | undefined;
   name: string;
-  host = '192.168.2.101';
+  host = '10.0.0.153';
   port = 8000;
 
   constructor(props: {route: any, navigation: any}) {
@@ -40,7 +40,7 @@ class GameLobby extends Component {
             )}
           />
           <Button 
-            disabled={this.state.players.length < 4}
+            // disabled={this.state.players.length < 4}
             onPress={
               async () => {
                 this.startGame()
