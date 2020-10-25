@@ -3,6 +3,18 @@ import { View, Text, ViewStyle, Button, TextStyle} from 'react-native';
 import { FlatList } from "react-native-gesture-handler";
 import {Card} from '../models/Card';
 import { useRoute } from '@react-navigation/native';
+import GameClient from "../clients/game_client";
+type GameState = {
+  selected: boolean[],
+  did_draw: boolean,
+  game_state: {
+    player_hand: Card[],
+    team1_points: Card[],
+    team2_points: Card[],
+    top_discard?: JSX.Element,
+    turn: number,
+  },
+};
 
 const GAME_ACTIONS_STYLE: ViewStyle = {
   height: 5, 
@@ -45,20 +57,6 @@ const DECK_CONTAINER_VIEW_STYLE: ViewStyle = {
   ... CARD_CONTAINER_VIEW_STYLE
 };
 
-
-
-type GameState = {
-  selected: boolean[],
-  did_draw: boolean,
-  game_state: {
-    player_hand: Card[],
-    team1_points: Card[],
-    team2_points: Card[],
-    top_discard?: JSX.Element,
-    turn: number,
-  },
-};
-
 const TITLE_STYLES: TextStyle = {
   color: 'Black',
   fontWeight: 'bold',
@@ -83,7 +81,8 @@ export class Game extends Component {
   state: GameState;
   host = '10.0.0.153';
   port = 8000;
-  game_id: String;
+  client: GameClient;
+  game_id: string;
   socket: WebSocket;
   player_id: number;
   constructor(props: any) {
@@ -92,6 +91,7 @@ export class Game extends Component {
     this.game_id = props.route.params.game_id;
     this.socket = props.route.params.websocket;
     this.player_id = props.route.params.player_id;
+    this.client = new GameClient(this.game_id, this.player_id);
     this.state = { 
       selected: [],
       did_draw: false,
@@ -124,16 +124,21 @@ export class Game extends Component {
     this.forceUpdate();
   }
 
-  async updateGameState() {
-    fetch('http://' + this.host + ':' + this.port + '/game-state/?game-id=' + this.game_id + '&player=' + this.player_id, {
-      method: "GET",
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-      },
-    }).catch((e) => {alert("Could not join the game, room must be full."); throw e;} )
-    .then((response) => response.json())
-    .then((json: any ) => {
+  drawCardAction() {
+    this.client.drawCardAction(async () => this.updateGameState());
+  }
+
+  discardAction() {
+    let selected_indices = this.getSelectedCards();
+    if (selected_indices.length != 1) {
+      alert("You must select ONE card to discard");
+      return;
+    }
+    this.client.discardAction(selected_indices[0]);
+  }
+
+  updateGameState() {
+    this.client.updateGameState(async (json: any) => {
       this.setDefaultGameState();
       let top_card = <Card {... this.props} value={json.top_discard.value} suit={json.top_discard.suit} id={-1}/>;
       this.state.game_state = {
@@ -146,6 +151,12 @@ export class Game extends Component {
       this.state.selected = this.state.game_state.player_hand.map(()=> false);
       this.forceUpdate();
     });
+  }
+
+  openAction() {
+    // this.state.game_state.player_hand = [];
+    // this.state.selected = [];
+    // this.forceUpdate();
   }
 
   render(): JSX.Element {
@@ -222,7 +233,7 @@ export class Game extends Component {
               color="#678547"
               onPress={async()=>{
                 if (this.getSelectedCards().length != 8) {
-                  alert("EXACTLY 8 cards must be selected to pickup the deck");
+                  alert("EXACTLY 8 cards must be selected to pickup the deck and at least one must have the same value as the discarded card.");
                   return;
                 }
                 this.state.did_draw = true;
@@ -272,61 +283,6 @@ export class Game extends Component {
     return 0;
   }
 
-  async drawCardAction() {
-    await fetch('http://' + this.host + ':' + this.port + '/draw-card/?game-id=' + this.game_id + '&player=' + this.player_id, {
-      method: "GET",
-    }).catch((e) => {alert("Could not draw a card, an error occured."); throw e;} )
-    .then((_) => {
-      this.updateGameState();
-      this.forceUpdate();
-    });
-  }
-
-  async discardAction() {
-    let selected_indices = this.getSelectedCards();
-    if (selected_indices.length != 1) {
-      alert("You must select ONE card to discard");
-      return;
-    }
-    await fetch('http://' + this.host + ':' + this.port + '/discard-card', {
-      method: "POST",
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(
-        {'game_id': this.game_id, 'card_index': selected_indices[0]}
-      )
-    }).catch((e) => {alert("Could not discard "); throw e;} )
-    .then((_) => {
-      this.state.game_state.player_hand = [];
-      this.state.selected = [];
-      this.forceUpdate();
-    });
-  }
-
-  async openAction() {
-    let selected_indices = this.getSelectedCards();
-    if (selected_indices.length != 1) {
-      alert("You must select ONE card to discard");
-      return;
-    }
-    await fetch('http://' + this.host + ':' + this.port + '/discard-card', {
-      method: "POST",
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(
-        {'game_id': this.game_id, 'card_index': selected_indices[0]}
-      )
-    }).catch((e) => {alert("Could not discard "); throw e;} )
-    .then((_) => {
-      this.state.game_state.player_hand = [];
-      this.state.selected = [];
-      this.forceUpdate();
-    });
-  }
 
   getSelectedCards(): number[] {
     var indices = [];
