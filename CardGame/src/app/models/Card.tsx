@@ -1,6 +1,5 @@
-import React from 'react';
-import { Component } from 'react';
-import { View, Text, TextStyle, ViewStyle, Pressable } from 'react-native';
+import React, { Component }  from 'react';
+import { View, Text, TextStyle, ViewStyle } from 'react-native';
 
 const card_style: ViewStyle = {
     borderStyle: 'solid',
@@ -50,26 +49,28 @@ const suit_logo_style: TextStyle = {
 const SUIT = {
     'Hearts':     {style: { color: 'red',   ... SUIT_STYLE}, value: '♥'},
     'Diamonds':   {style: { color: 'red',   ... SUIT_STYLE}, value: '♦'},
-    'Red':        {style: { color: 'red',   ... SUIT_STYLE}, value: ''},
+    'Red':        {style: { color: 'red',   ... SUIT_STYLE}, value: '🃏'},
     'Spades':     {style: { color: 'black', ... SUIT_STYLE}, value: '♠'},
     'Clubs':      {style: { color: 'black', ... SUIT_STYLE}, value: '♣'},
-    'Black':      {style: { color: 'black', ... SUIT_STYLE}, value: ''},
+    'Black':      {style: { color: 'black', ... SUIT_STYLE}, value: '🃏'},
 };
 
 
 export type CARD_SUIT = 'Spades'|'Diamonds'|'Hearts'|'Clubs'|'Red'|'Black';
 export type CARD_VALUE = 'A'|'2'|'3'|'4'|'5'|'6'|'7'|'8'|'9'|'10'|'J'|'Q'|'K'|'Joker';
 
-export class Card extends Component {
-    props: {suit?: CARD_SUIT, value?: CARD_VALUE, onChange?: any, id?: number} = {suit: undefined, value: undefined, onChange: undefined, id: undefined };
-    state: {selected: boolean} = {selected: false};
-    isSelected(): boolean {
-        return this.state.selected;
-    }
+export class Card extends Component<{}, {}> {
+    props: { suit?: CARD_SUIT,  value?: CARD_VALUE, selected: boolean,  id?: number     }
+        =  { suit: undefined,   value: undefined,   selected: false,    id: undefined   };
     
+    constructor(props: any) {
+        super(props);
+    }
+
     render() {
         let value = this.props.value;
         let suit_name = this.props.suit;
+        let selected = this.props.selected;
         var suit;
         if (suit_name) {
             suit = SUIT[suit_name];
@@ -77,22 +78,15 @@ export class Card extends Component {
             suit = SUIT['Black'];
         }
 
-        return <Pressable onPress={() =>{
-            this.state.selected = !this.state.selected;
-            this.props.onChange(this.props.id);
-            this.forceUpdate();
-            }
-        }>
-            <View style={(this.state.selected)?{top: -10,...card_style}:card_style}>
-                <View style={(this.state.selected)?{opacity: 0.5, width: '100%', height: '100%'}:{width: '100%', height: '100%'} }>
+        return <View style={(selected)?{top: -10,...card_style}:card_style}>
+                <View style={(selected)?{opacity: 0.5, width: '100%', height: '100%'}:{width: '100%', height: '100%'} }>
                     <Text style={card_value_top_left_style}>{value}</Text>
                     <View style={suit_logo_style}>
                         <Text style={suit.style}>{suit.value}</Text>
                     </View>
                     <Text style={card_value_bottom_right_style}>{value}</Text>
                 </View>
-            </View>
-        </Pressable>;
+            </View>;
     }
 }
   

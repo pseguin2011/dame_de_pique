@@ -11,7 +11,7 @@ export default class GameClient {
 
   async drawCardAction(post_event: () => {}) {
     this.request('draw-card/?game-id=' + this.game_id + '&player=' + this.player_id, "GET")
-      .catch((e) => {alert("Could not draw a card, an error occured."); throw e;} )
+      .catch((e) => { alert("Could not draw a card, an error occured."); throw e;} )
       .then((_) => {
           post_event();
     });

@@ -1,79 +1,29 @@
 import React, { Component } from 'react';
-import { View, Text, ViewStyle, Button, TextStyle} from 'react-native';
+import { View, Text, Button, Pressable} from 'react-native';
 import { FlatList } from "react-native-gesture-handler";
-import {Card} from '../models/Card';
+
 import { useRoute } from '@react-navigation/native';
+
 import GameClient from "../clients/game_client";
+
+import {Card, CARD_SUIT, CARD_VALUE} from '../models/Card';
+import Deck from '../models/Deck';
+
+import {DECK_CONTAINER_VIEW_STYLE, PLAYER_CONTAINER_VIEW_STYLE, GAME_ACTIONS_STYLE} from '../styles/game_styles';
+import {TITLE_STYLES, GAME_ACTION_STYLE, TEAM_CONTAINER_VIEW_STYLE} from '../styles/game_styles';
+
+type CardType = {value: CARD_VALUE, suit: CARD_SUIT};
 type GameState = {
   selected: boolean[],
   did_draw: boolean,
   game_state: {
-    player_hand: Card[],
-    team1_points: Card[],
-    team2_points: Card[],
-    top_discard?: JSX.Element,
+    player_hand: {card: CardType, index: number}[],
+    team1_points: CardType[],
+    team2_points: CardType[],
+    top_discard?: CardType,
     turn: number,
   },
 };
-
-const GAME_ACTIONS_STYLE: ViewStyle = {
-  height: 5, 
-  alignContent: 'flex-start', 
-  flexDirection:'row',
-  flexWrap: 'wrap',
-  flex: 1,
-  width: '100%',
-};
-
-const GAME_ACTION_STYLE: ViewStyle = {
-  margin: 20,
-  width: 160,
-};
-const CARD_CONTAINER_VIEW_STYLE: ViewStyle = {
-  margin: 7,
-  padding: 10,
-  backgroundColor: 'white',
-  borderRadius: 5,
-  left: '0%',
-};
-
-const TEAM_CONTAINER_VIEW_STYLE: ViewStyle = {
-  flex:1,
-  height: 180,
-  ... CARD_CONTAINER_VIEW_STYLE
-};
-
-const PLAYER_CONTAINER_VIEW_STYLE: ViewStyle = {
-  height: 180,
-  ... CARD_CONTAINER_VIEW_STYLE
-};
-
-const DECK_CONTAINER_VIEW_STYLE: ViewStyle = {
-  flex: 1,
-  flexDirection: "row",
-  flexWrap: 'wrap',
-  height: 240,
-  minWidth: 30,
-  ... CARD_CONTAINER_VIEW_STYLE
-};
-
-const TITLE_STYLES: TextStyle = {
-  color: 'Black',
-  fontWeight: 'bold',
-  margin: 5,
-  fontSize: 20
-};
-
-const card_style: ViewStyle = {
-  borderStyle: 'solid',
-  borderWidth: 1,
-  borderRadius: 3,
-  width: 80, 
-  height: 100,
-  margin: 5,
-  backgroundColor: 'red',
-};
-
 
 type WebSocketResponse = {response_type: string, data: any};
 
@@ -85,9 +35,9 @@ export class Game extends Component {
   game_id: string;
   socket: WebSocket;
   player_id: number;
+
   constructor(props: any) {
     super(props);
-    this.updateSelections = this.updateSelections.bind(this);
     this.game_id = props.route.params.game_id;
     this.socket = props.route.params.websocket;
     this.player_id = props.route.params.player_id;
@@ -103,6 +53,8 @@ export class Game extends Component {
         turn: 0,
       },
     };
+
+    // Updates the websocket messages received to handle game state messages while in this component.
     this.socket.onmessage = (e) => {
       let json: WebSocketResponse = JSON.parse(e.data);
       switch (json.response_type) {
@@ -111,23 +63,21 @@ export class Game extends Component {
           break;
       }
     };
+
     this.updateGameState();
   }
-  setDefaultGameState() {
-    this.state.game_state = {
-      player_hand: [],
-      team1_points: [],
-      team2_points: [],
-      top_discard: undefined,
-      turn: 0,
-    };
-    this.forceUpdate();
-  }
 
+  /// Sends the draw card action for the current game to the server.
+  /// Force updates the game state and sets the did_draw to true upon receiving a successful response.
   drawCardAction() {
-    this.client.drawCardAction(async () => this.updateGameState());
+    this.client.drawCardAction(async () => {
+      this.updateGameState();
+      this.state.did_draw = true;
+    });
   }
 
+  /// Discards a single selected card
+  /// Resets the did_draw value so the correct buttons are disabled
   discardAction() {
     let selected_indices = this.getSelectedCards();
     if (selected_indices.length != 1) {
@@ -135,28 +85,17 @@ export class Game extends Component {
       return;
     }
     this.client.discardAction(selected_indices[0]);
+    this.state.did_draw = false;
   }
 
+  /// Fetches the current game state and updates the all components and unselects all cards. 
   updateGameState() {
     this.client.updateGameState(async (json: any) => {
-      this.setDefaultGameState();
-      let top_card = <Card {... this.props} value={json.top_discard.value} suit={json.top_discard.suit} id={-1}/>;
-      this.state.game_state = {
-        player_hand: json.player_hand.map((card: any, index: number) => <Card onChange={this.updateSelections} {... this.props} id={index} value={card.value} suit={card.suit}/>),
-        team1_points: json.team1_points,
-        team2_points: json.team2_points,
-        turn: json.turn,
-        top_discard: top_card,
-      };
+      this.state.game_state = json;
+      this.state.game_state.player_hand = json.player_hand.map((card: any, i: number) => {return {card: card, index: i}});
       this.state.selected = this.state.game_state.player_hand.map(()=> false);
       this.forceUpdate();
     });
-  }
-
-  openAction() {
-    // this.state.game_state.player_hand = [];
-    // this.state.selected = [];
-    // this.forceUpdate();
   }
 
   render(): JSX.Element {
@@ -171,7 +110,7 @@ export class Game extends Component {
               <FlatList
                 style={{flexDirection:'row'}}
                 data={Object.keys(this.state.game_state.team1_points)}
-                renderItem={({item}: {item: any}) => <Card value={item} suit='Black'/>}
+                renderItem={({item}: {item: any}) => <Card value={item} suit='Black' selected={false}/>}
               />
             </View>
             <View style={TEAM_CONTAINER_VIEW_STYLE}>
@@ -183,26 +122,13 @@ export class Game extends Component {
                 horizontal
                 style={{flexDirection:'row'}}
                 data={Object.keys(this.state.game_state.team2_points)}
-                renderItem={({item}: {item: any}) => <Card value={item} suit='Black'/>}
+                renderItem={({item}: {item: any}) => <Card value={item} suit='Black' selected={false}/>}
               />
             </View>
           </View>
           <View style={DECK_CONTAINER_VIEW_STYLE}>
-
-              <View style={card_style}>
-                <View style={{paddingRight: 1, width: '100%', height: '100%', borderStyle: 'solid', borderWidth: 1, left: 1}}>
-                  <View style={{paddingRight: 1, width: '100%', height: '100%',borderStyle: 'solid', borderWidth: 1, left: 2}}>
-                    <View style={{paddingRight: 1, width: '100%', height: '100%', borderStyle: 'solid', borderWidth: 1, left: 3}}>
-                      <View style={{position: 'absolute', padding: 10, width: '40%', left: '5%', top: '10%', height: '40%', borderStyle: 'solid', borderWidth: 2,}}/>
-                      <View style={{position: 'absolute', padding: 10, width: '40%', left: '5%', top: '55%', height: '40%', borderStyle: 'solid', borderWidth: 2,}}/>
-                      <View style={{position: 'absolute', padding: 10, width: '40%', left: '30%', top: '30%', height: '40%', borderStyle: 'solid', borderWidth: 2,}}/>
-                      <View style={{position: 'absolute', padding: 10, width: '40%', right: '5%', top: '55%', height: '40%', borderStyle: 'solid', borderWidth: 2,}}/>
-                      <View style={{position: 'absolute', padding: 10, width: '40%', right: '5%', top: '10%', height: '40%', borderStyle: 'solid', borderWidth: 2,}}/>
-                    </View>
-                  </View>
-                </View>
-              </View>
-            {this.state.game_state.top_discard}
+              <Deck/>
+              <Card value={this.state.game_state.top_discard?.value} suit={this.state.game_state.top_discard?.suit} selected={false}/>
           </View>
         </View>
 
@@ -212,7 +138,15 @@ export class Game extends Component {
             horizontal
             style={{flexDirection:'row'}}
             data={this.state.game_state?.player_hand}
-            renderItem={({item}: {item: any})=> <View style={{marginRight: -50,}}>{item}</View>}
+            renderItem={({item}: {item: any})=> <View style={{marginRight: -50}}>
+              <Pressable onPress={() => {
+                  this.state.selected[item.index] = !this.state.selected[item.index];
+                  this.forceUpdate();
+                }}
+              >
+                <Card selected={this.state.selected[item.index]} id={item.index} value={item.card.value} suit={item.card.suit}/>
+              </Pressable>
+            </View>}
           />
         </View>
         <View style={GAME_ACTIONS_STYLE}>
@@ -221,14 +155,11 @@ export class Game extends Component {
               disabled={this.player_id != this.state.game_state.turn || this.state.did_draw}
               title="Draw Card"
               color="#678547"
-              onPress={async()=>{ await this.drawCardAction(); this.state.did_draw = true;}}/>
+              onPress={async()=>{ await this.drawCardAction(); }}/>
           </View>
           <View style={GAME_ACTION_STYLE}>
             <Button
-              disabled={
-                this.player_id != this.state.game_state.turn ||
-                this.state.did_draw
-              }
+              disabled={this.player_id != this.state.game_state.turn || this.state.did_draw}
               title="Pickup Deck"
               color="#678547"
               onPress={async()=>{
@@ -242,10 +173,7 @@ export class Game extends Component {
           </View>
           <View style={GAME_ACTION_STYLE}>
             <Button
-              disabled={
-                this.player_id != this.state.game_state.turn ||
-                !this.state.did_draw
-              }
+              disabled={this.player_id != this.state.game_state.turn || !this.state.did_draw}
               title="Open"
               color="#678547"
               onPress={async()=>{
@@ -254,27 +182,22 @@ export class Game extends Component {
           </View>
           <View style={GAME_ACTION_STYLE}>
             <Button
-              disabled={
-                this.player_id != this.state.game_state.turn ||
-                !this.state.did_draw
-              }
+              disabled={this.player_id != this.state.game_state.turn || !this.state.did_draw}
               title="Add Points"
               color="#678547"
               onPress={async()=>{}}/>
           </View>
           <View style={GAME_ACTION_STYLE}>
             <Button
-              disabled={
-                this.player_id != this.state.game_state.turn ||
-                !this.state.did_draw
-              }
+              disabled={this.player_id != this.state.game_state.turn || !this.state.did_draw}
               title="Discard"
               color="#678547"
-              onPress={async()=>{await this.discardAction(); this.state.did_draw = false;}}/>
+              onPress={async()=> await this.discardAction()}/>
           </View>
         </View>
       </View>;
   }
+
   calculateTeam1TotalPoints(): number {
     return 0;
   }
@@ -283,7 +206,11 @@ export class Game extends Component {
     return 0;
   }
 
-
+  /// ## Purpose
+  /// Searches through the player's hand to find cards with a selected state of true
+  ///
+  /// ## Returns
+  /// All indices of selected cards
   getSelectedCards(): number[] {
     var indices = [];
     for (var i = 0; i<this.state.selected.length; i++){
@@ -292,16 +219,10 @@ export class Game extends Component {
     }
     return indices;
   }
-
-  updateSelections(index: number) {
-    this.state.selected[index] = !this.state.selected[index];
-  }
-
 }
 
 export default function(props: any) {
   const route = useRoute();
-
   return <Game {... props} route={route} />
 }
 
