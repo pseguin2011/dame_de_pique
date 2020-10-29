@@ -72,6 +72,13 @@ async fn main() {
         .and(with_game_sessions(sessions.clone()))
         .and_then(gameplay::gameplay_handlers::discard_handler);
 
+    let game_action_open_route = warp::path("player-open")
+        .and(warp::post())
+        .and(warp::body::json())
+        .and(with_players(players.clone()))
+        .and(with_game_sessions(sessions.clone()))
+        .and_then(gameplay::gameplay_handlers::player_open_handler);
+
     let cors = warp::cors()
         .allow_any_origin()
         .allow_header("content-type")
@@ -85,6 +92,7 @@ async fn main() {
         .or(gameplay_route)
         .or(game_action_draw_route)
         .or(game_action_discard_route)
+        .or(game_action_open_route)
         .with(cors);
 
     warp::serve(routes).run(([127, 0, 0, 1], 8000)).await;

@@ -1,4 +1,6 @@
-use crate::gameplay::gameplay_models::{GameDiscardRequest, PlayerGameStateResponse};
+use crate::gameplay::gameplay_models::{
+    GameDiscardRequest, PlayerGameStateResponse, PlayerOpenRequest,
+};
 use crate::models::{GameSessions, Players, WebSocketResponse};
 use crate::Result;
 use game::gameplay::PlayerMove;
@@ -49,6 +51,40 @@ pub async fn discard_handler(
     if let Some(game) = sessions.write().await.get_mut(&request.game_id) {
         PlayerMove::handle_move(&PlayerMove::Discard(request.card_index), &mut game.state).unwrap();
         game.state.end_turn();
+        players.read().await.iter().for_each(|(_, player)| {
+            if let Some(sender) = &player.sender {
+                sender
+                    .send(Ok(Message::text(
+                        serde_json::to_string(&WebSocketResponse {
+                            response_type: "GameState".into(),
+                            data: {},
+                        })
+                        .unwrap(),
+                    )))
+                    .unwrap();
+            }
+        });
+        Ok(StatusCode::OK)
+    } else {
+        Err(warp::reject::not_found())
+    }
+}
+
+pub async fn player_open_handler(
+    request: PlayerOpenRequest,
+    players: Players,
+    sessions: GameSessions,
+) -> Result<impl Reply> {
+    println!("Player Open Request");
+    if let Some(game) = sessions.write().await.get_mut(&request.game_id) {
+        let mut cards = Vec::new();
+        for i in request.cards_indices {
+            let card = game.state.default_state.players[game.state.default_state.turn]
+                .hand
+                .remove(i);
+            cards.push(card);
+        }
+        PlayerMove::handle_move(&PlayerMove::Open(cards), &mut game.state).unwrap();
         players.read().await.iter().for_each(|(_, player)| {
             if let Some(sender) = &player.sender {
                 sender
