@@ -78,10 +78,10 @@ pub async fn player_open_handler(
     println!("Player Open Request");
     if let Some(game) = sessions.write().await.get_mut(&request.game_id) {
         let mut cards = Vec::new();
-        for i in request.cards_indices {
+        for i in request.card_indices.iter().rev() {
             let card = game.state.default_state.players[game.state.default_state.turn]
                 .hand
-                .remove(i);
+                .remove(*i);
             cards.push(card);
         }
         PlayerMove::handle_move(&PlayerMove::Open(cards), &mut game.state).unwrap();

@@ -177,7 +177,7 @@ export class Game extends Component {
               title="Open"
               color="#678547"
               onPress={async()=>{
-                this.forceUpdate();
+                this.client.openAction(this.getSelectedCards());
               }}/>
           </View>
           <View style={GAME_ACTION_STYLE}>

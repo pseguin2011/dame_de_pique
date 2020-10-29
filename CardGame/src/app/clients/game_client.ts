@@ -31,24 +31,24 @@ export default class GameClient {
     }).catch((e) => {alert("Could not discard "); throw e;} );
   }
 
-  async openAction(cards: [number]) {
-    // if (selected_indices.length != 1) {
-    //   alert("You must select ONE card to discard");
-    //   return;
-    // }
-    // await fetch('http://' + this.host + ':' + this.port + '/discard-card', {
-    //   method: "POST",
-    //   headers: {
-    //     Accept: 'application/json',
-    //     'Content-Type': 'application/json',
-    //   },
-    //   body: JSON.stringify(
-    //     {'game_id': this.game_id, 'card_index': selected_indices[0]}
-    //   )
-    // }).catch((e) => {alert("Could not discard "); throw e;} )
-    // .then((_) => {
+  async openAction(cards: number[]) {
+    if (cards.length != 9) {
+      alert("You must select exactly 9 cards to open");
+      return;
+    }
+    await fetch('http://' + this.host + ':' + this.port + '/player-open', {
+      method: "POST",
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(
+        {'game_id': this.game_id, 'card_indices': cards}
+      )
+    }).catch((e) => {alert("Could not discard "); throw e;} )
+    .then((_) => {
 
-    // });
+    });
   }
 
   async updateGameState(response_handler: (json: any) => {}) {

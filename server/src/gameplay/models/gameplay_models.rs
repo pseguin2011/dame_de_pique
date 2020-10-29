@@ -13,7 +13,7 @@ pub struct GameDiscardRequest {
 #[derive(Clone, Debug, Deserialize)]
 pub struct PlayerOpenRequest {
     pub game_id: String,
-    pub cards_indices: Vec<usize>,
+    pub card_indices: Vec<usize>,
 }
 
 #[derive(Clone, Debug, Serialize)]

@@ -25,7 +25,7 @@ export default class Login extends Component {
     return <View style={{ backgroundColor: '#DAD7D7', width: '50%', height: '100%', padding: 10}}>
         <TextInput         
             style={{height: 60}}
-            placeholder="Player Name"
+            placeholder={"Player Name: " + this.state.username} 
             onChangeText={player_name => this.state = {username: player_name}}
             defaultValue={''}
         />
