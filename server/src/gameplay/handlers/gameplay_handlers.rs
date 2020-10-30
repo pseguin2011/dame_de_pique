@@ -1,5 +1,5 @@
 use crate::gameplay::gameplay_models::{
-    GameDiscardRequest, PlayerGameStateResponse, PlayerOpenRequest,
+    GameDiscardRequest, PlayerAddPointsRequest, PlayerGameStateResponse, PlayerOpenRequest,
 };
 use crate::models::{GameSessions, Players, WebSocketResponse};
 use crate::Result;
@@ -86,6 +86,50 @@ pub async fn player_open_handler(
             .map(|c| c.1.clone())
             .collect::<Vec<game::Card>>();
         if PlayerMove::handle_move(&PlayerMove::Open(cards), &mut game.state).is_err() {
+            return Err(warp::reject::reject());
+        } else {
+            for i in request.card_indices.iter().rev() {
+                game.state.default_state.players[game.state.default_state.turn]
+                    .hand
+                    .remove(*i);
+            }
+        }
+
+        players.read().await.iter().for_each(|(_, player)| {
+            if let Some(sender) = &player.sender {
+                sender
+                    .send(Ok(Message::text(
+                        serde_json::to_string(&WebSocketResponse {
+                            response_type: "GameState".into(),
+                            data: {},
+                        })
+                        .unwrap(),
+                    )))
+                    .unwrap();
+            }
+        });
+        Ok(StatusCode::OK)
+    } else {
+        Err(warp::reject::not_found())
+    }
+}
+
+pub async fn player_add_points_handler(
+    request: PlayerAddPointsRequest,
+    players: Players,
+    sessions: GameSessions,
+) -> Result<impl Reply> {
+    println!("Player Open Request");
+    if let Some(game) = sessions.write().await.get_mut(&request.game_id) {
+        let hand = game.state.default_state.players[game.state.default_state.turn]
+            .hand
+            .iter();
+        let cards = hand
+            .enumerate()
+            .filter(|(i, _c)| request.card_indices.contains(i))
+            .map(|c| c.1.clone())
+            .collect::<Vec<game::Card>>();
+        if PlayerMove::handle_move(&PlayerMove::AddPoints(cards), &mut game.state).is_err() {
             return Err(warp::reject::reject());
         } else {
             for i in request.card_indices.iter().rev() {

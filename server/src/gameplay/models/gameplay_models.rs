@@ -16,6 +16,12 @@ pub struct PlayerOpenRequest {
     pub card_indices: Vec<usize>,
 }
 
+#[derive(Clone, Debug, Deserialize)]
+pub struct PlayerAddPointsRequest {
+    pub game_id: String,
+    pub card_indices: Vec<usize>,
+}
+
 #[derive(Clone, Debug, Serialize)]
 pub struct PlayerGameStateResponse {
     pub player_hand: Vec<Card>,
