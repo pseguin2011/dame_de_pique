@@ -28,14 +28,10 @@ export default class GameClient {
       body: JSON.stringify(
         {'game_id': this.game_id, 'card_index': cardIndex}
       )
-    }).catch((e) => {alert("Could not discard "); throw e;} );
+    }).catch((e) => {alert("Could not discard."); throw e;} );
   }
 
   async openAction(cards: number[]) {
-    if (cards.length != 9) {
-      alert("You must select exactly 9 cards to open");
-      return;
-    }
     await fetch('http://' + this.host + ':' + this.port + '/player-open', {
       method: "POST",
       headers: {
@@ -45,7 +41,7 @@ export default class GameClient {
       body: JSON.stringify(
         {'game_id': this.game_id, 'card_indices': cards}
       )
-    }).catch((e) => {alert("Could not discard "); throw e;} )
+    }).catch((e) => {alert("Could not Open. 3 sets of 3 are required if your opponent has not opened. 1 set of 3 is required if they have opened."); throw e;} )
     .then((_) => {
 
     });
