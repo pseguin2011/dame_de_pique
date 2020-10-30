@@ -77,14 +77,24 @@ pub async fn player_open_handler(
 ) -> Result<impl Reply> {
     println!("Player Open Request");
     if let Some(game) = sessions.write().await.get_mut(&request.game_id) {
-        let mut cards = Vec::new();
-        for i in request.card_indices.iter().rev() {
-            let card = game.state.default_state.players[game.state.default_state.turn]
-                .hand
-                .remove(*i);
-            cards.push(card);
+        let hand = game.state.default_state.players[game.state.default_state.turn]
+            .hand
+            .iter();
+        let cards = hand
+            .enumerate()
+            .filter(|(i, _c)| request.card_indices.contains(i))
+            .map(|c| c.1.clone())
+            .collect::<Vec<game::Card>>();
+        if PlayerMove::handle_move(&PlayerMove::Open(cards), &mut game.state).is_err() {
+            return Err(warp::reject::reject());
+        } else {
+            for i in request.card_indices.iter().rev() {
+                game.state.default_state.players[game.state.default_state.turn]
+                    .hand
+                    .remove(*i);
+            }
         }
-        PlayerMove::handle_move(&PlayerMove::Open(cards), &mut game.state).unwrap();
+
         players.read().await.iter().for_each(|(_, player)| {
             if let Some(sender) = &player.sender {
                 sender

@@ -62,9 +62,8 @@ impl PlayerMove {
         let doubles = cards.iter().filter(|(_, &v)| v == 2).count();
 
         match who_opened {
-            WhoOpened::Both | WhoOpened::Me | WhoOpened::Partner => {
-                std::cmp::min(twos, doubles) + triples >= 1
-            }
+            WhoOpened::Both | WhoOpened::Me => false,
+            WhoOpened::Partner => std::cmp::min(twos, doubles) + triples >= 1,
             WhoOpened::Nobody => std::cmp::min(twos, doubles) + triples >= 3,
         }
     }

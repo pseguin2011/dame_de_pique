@@ -96,7 +96,6 @@ async fn main() {
         .with(cors);
 
     warp::serve(routes).run(([127, 0, 0, 1], 8000)).await;
-    // warp::serve(routes).run(([10, 0, 0, 153], 8000)).await;
 }
 
 fn with_game_sessions(
