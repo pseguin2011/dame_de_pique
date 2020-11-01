@@ -86,6 +86,13 @@ async fn main() {
         .and(with_game_sessions(sessions.clone()))
         .and_then(gameplay::gameplay_handlers::player_add_points_handler);
 
+    let game_player_pickup_discard_route = warp::path("player-pickup-discard")
+        .and(warp::post())
+        .and(warp::body::json())
+        .and(with_players(players.clone()))
+        .and(with_game_sessions(sessions.clone()))
+        .and_then(gameplay::gameplay_handlers::player_pickup_discard_handler);
+
     let cors = warp::cors()
         .allow_any_origin()
         .allow_header("content-type")
@@ -101,6 +108,7 @@ async fn main() {
         .or(game_action_discard_route)
         .or(game_action_open_route)
         .or(game_action_points_route)
+        .or(game_player_pickup_discard_route)
         .with(cors);
 
     warp::serve(routes).run(([127, 0, 0, 1], 8000)).await;

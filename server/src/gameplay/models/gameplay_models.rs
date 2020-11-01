@@ -11,6 +11,12 @@ pub struct GameDiscardRequest {
 }
 
 #[derive(Clone, Debug, Deserialize)]
+pub struct PlayerPickupDiscardRequest {
+    pub game_id: String,
+    pub card_indices: Vec<usize>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
 pub struct PlayerOpenRequest {
     pub game_id: String,
     pub card_indices: Vec<usize>,
@@ -27,7 +33,7 @@ pub struct PlayerGameStateResponse {
     pub player_hand: Vec<Card>,
     team1_points: HashMap<String, Vec<Card>>,
     team2_points: HashMap<String, Vec<Card>>,
-    top_discard: Card,
+    top_discard: Option<Card>,
     turn: usize,
 }
 
@@ -63,19 +69,16 @@ impl From<DDPState> for PlayerGameStateResponse {
             })
             .collect();
 
+        let top_discard = match other.default_state.deck.peek_top_discarded_card() {
+            Some(card) => Some(Card::from(card.clone())),
+            None => None,
+        };
         PlayerGameStateResponse {
             player_hand: vec![],
             team1_points,
             team2_points,
             turn: other.default_state.turn,
-            top_discard: Card::from(
-                other
-                    .default_state
-                    .deck
-                    .peek_top_discarded_card()
-                    .unwrap()
-                    .clone(),
-            ),
+            top_discard,
         }
     }
 }

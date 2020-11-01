@@ -1,5 +1,6 @@
 use crate::gameplay::gameplay_models::{
     GameDiscardRequest, PlayerAddPointsRequest, PlayerGameStateResponse, PlayerOpenRequest,
+    PlayerPickupDiscardRequest,
 };
 use crate::models::{GameSessions, Players, WebSocketResponse};
 use crate::Result;
@@ -137,6 +138,55 @@ pub async fn player_add_points_handler(
                     .hand
                     .remove(*i);
             }
+        }
+
+        players.read().await.iter().for_each(|(_, player)| {
+            if let Some(sender) = &player.sender {
+                sender
+                    .send(Ok(Message::text(
+                        serde_json::to_string(&WebSocketResponse {
+                            response_type: "GameState".into(),
+                            data: {},
+                        })
+                        .unwrap(),
+                    )))
+                    .unwrap();
+            }
+        });
+        Ok(StatusCode::OK)
+    } else {
+        Err(warp::reject::not_found())
+    }
+}
+
+pub async fn player_pickup_discard_handler(
+    request: PlayerPickupDiscardRequest,
+    players: Players,
+    sessions: GameSessions,
+) -> Result<impl Reply> {
+    println!("Player Pickup Discard Request");
+    if let Some(game) = sessions.write().await.get_mut(&request.game_id) {
+        let mut cards = Vec::new();
+        for i in request.card_indices.iter().rev() {
+            cards.push(
+                game.state.default_state.players[game.state.default_state.turn]
+                    .hand
+                    .remove(*i),
+            );
+        }
+
+        if PlayerMove::handle_move(&PlayerMove::TakeDiscardPile(cards.clone()), &mut game.state)
+            .is_err()
+        {
+            cards.iter().for_each(|c| {
+                game.state.default_state.players[game.state.default_state.turn]
+                    .hand
+                    .push(c.clone())
+            });
+            game.state.default_state.players[game.state.default_state.turn]
+                .hand
+                .sort();
+            return Err(warp::reject::reject());
         }
 
         players.read().await.iter().for_each(|(_, player)| {

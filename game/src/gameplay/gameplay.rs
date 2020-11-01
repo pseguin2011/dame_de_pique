@@ -12,7 +12,7 @@ pub enum PlayerMove {
     Draw,
     Open(Vec<Card>),
     AddPoints(Vec<Card>),
-    TakeDiscardPile,
+    TakeDiscardPile(Vec<Card>),
     Discard(usize),
 }
 
@@ -124,25 +124,30 @@ impl GameMove<DDPState> for PlayerMove {
                     return Err(e.into());
                 }
             }
-            PlayerMove::TakeDiscardPile => {
+            PlayerMove::TakeDiscardPile(cards) => {
                 let turn = game.default_state.turn;
-
-                let mut player_hand_with_discard = game.default_state.players
-                    [game.default_state.turn]
-                    .hand
-                    .clone();
+                let mut cards = cards.clone();
                 if let Some(card) = game.default_state.deck.peek_top_discarded_card() {
-                    player_hand_with_discard.push(card.clone());
+                    cards.push(card.clone());
                 }
 
                 if !PlayerMove::hand_can_open(
                     game.get_partners_from_player(turn).who_opened(turn),
-                    &player_hand_with_discard,
+                    &cards,
                 ) {
                     return Err(DameDePiqueError::InvalidDiscardOpeningHand(
                         game.default_state.turn,
                     ));
                 }
+                // Valid Opening hand to pickup the discard pile so we remove the top card of the dicard pile
+                game.default_state.deck.pop_top_discarded_card();
+
+                // Opening action
+                game.get_partners_from_player(turn)
+                    .add_points(cards.to_vec());
+                game.get_partners_from_player(turn).update_status(turn);
+
+                // Adding cards from discard pile to hand
                 for card in game.default_state.deck.take_discard_pile().drain(..) {
                     game.default_state.players[game.default_state.turn].add_card_to_hand(card);
                 }
