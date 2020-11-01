@@ -47,6 +47,22 @@ export default class GameClient {
     });
   }
 
+  async pickupDiscardAction(cards: number[]) {
+    await fetch('http://' + this.host + ':' + this.port + '/player-pickup-discard', {
+      method: "POST",
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(
+        {'game_id': this.game_id, 'card_indices': cards}
+      )
+    }).catch((e) => {alert("Could not Open. 3 sets of 3 are required if your opponent has not opened. 1 set of 3 is required if they have opened."); throw e;} )
+    .then((_) => {
+
+    });
+  }
+
   async updateGameState(response_handler: (json: any) => {}) {
     this.request('game-state/?game-id=' + this.game_id + '&player=' + this.player_id, "GET")
       .catch((e) => {alert("Could not update the game state, refresh your browser."); throw e;} )

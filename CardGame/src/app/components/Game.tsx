@@ -177,7 +177,7 @@ export class Game extends Component {
         <View style={GAME_ACTIONS_STYLE}>
           <View style={GAME_ACTION_STYLE}>
             <Button
-              disabled={this.player_id != this.state.game_state.turn || this.state.did_draw}
+              // disabled={this.player_id != this.state.game_state.turn || this.state.did_draw}
               title="Draw Card"
               color="#678547"
               onPress={async()=>{ await this.drawCardAction(); }}/>
@@ -188,10 +188,10 @@ export class Game extends Component {
               title="Pickup Deck"
               color="#678547"
               onPress={async()=>{
-                if (this.getSelectedCards().length != 8) {
-                  alert("EXACTLY 8 cards must be selected to pickup the deck and at least one must have the same value as the discarded card.");
+                await this.client.pickupDiscardAction(this.getSelectedCards()).catch((e) => {
+                  alert("Could not pickup the deck. " + e);
                   return;
-                }
+                });
                 this.state.did_draw = true;
                 this.forceUpdate();
               }}/>
