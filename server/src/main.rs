@@ -1,8 +1,10 @@
 use std::collections::HashMap;
 use std::convert::Infallible;
+use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use warp::{http::Method, Filter, Rejection};
+mod config;
 mod gameplay;
 mod handler;
 mod models;
@@ -111,7 +113,12 @@ async fn main() {
         .or(game_player_pickup_discard_route)
         .with(cors);
 
-    warp::serve(routes).run(([127, 0, 0, 1], 8000)).await;
+    let config = config::load_config();
+
+    println!("Listening on {}:{}", config.host, config.port);
+    warp::serve(routes)
+        .run(SocketAddr::new(config.host, config.port))
+        .await;
 }
 
 fn with_game_sessions(
