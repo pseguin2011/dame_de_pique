@@ -87,10 +87,7 @@ impl PlayerMove {
         let doubles = cards.iter().filter(|(_, &v)| v == 2).count();
         // Sets of 1 (assuming two wilds)
         let singles = cards.iter().filter(|(_, &v)| v == 1).count();
-        println!(
-            "Twos: {}, Singles: {}, Doubles: {}, Triples: {}",
-            twos, singles, doubles, triples
-        );
+
         match who_opened {
             WhoOpened::Both | WhoOpened::Me => false,
             WhoOpened::Partner => {
@@ -173,6 +170,18 @@ impl GameMove<DDPState> for PlayerMove {
             PlayerMove::TakeDiscardPile(cards) => {
                 let turn = game.default_state.turn;
                 let mut cards = cards.clone();
+
+                // Verification that the player can't open before adding the top discarded
+                // card
+                if PlayerMove::hand_can_open(
+                    game.get_partners_from_player(turn).who_opened(turn),
+                    &cards,
+                ) {
+                    return Err(DameDePiqueError::InvalidDiscardOpeningHand(
+                        game.default_state.turn,
+                    ));
+                }
+
                 if let Some(card) = game.default_state.deck.peek_top_discarded_card() {
                     cards.push(card.clone());
                 }

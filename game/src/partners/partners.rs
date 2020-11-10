@@ -105,9 +105,27 @@ impl Partners {
                 }
             }
         }
-        for (k, v) in cards {
-            if self.points_deck.get(&k).is_none() && v <= 3 {
-                return false;
+        // Two's are not counted toward sets of 3 but are considered wild
+        let mut twos = match cards.remove(&CardValue::Two) {
+            Some(n) => n,
+            None => 0,
+        } as i32;
+
+        // If the player opened, then the hand needs to be point cards
+        // meaning that the cards must either be a complete set of 3,
+        // a Joker, a Two, or the value must already exist in the points deck for the partner
+        for (card_value, count) in cards {
+            if !self.points_deck.contains_key(&card_value) {
+                match count {
+                    0 => return false,
+                    1 => twos -= 2,
+                    2 => twos -= 1,
+                    _ => {}
+                }
+                // requires too many wild cards to be valid points
+                if twos < 0 {
+                    return false;
+                }
             }
         }
         true
