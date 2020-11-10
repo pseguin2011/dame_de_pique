@@ -42,29 +42,75 @@ impl DDPState {
 pub struct DameDePiqueGameBuilder;
 
 impl PlayerMove {
+    /// Verifies that the provided hand can open
+    ///
+    /// ## Rules
+    /// * If neither player on the team has opened,
+    ///     3 sets of 3 cards are required to open
+    /// * If the partner has opened
+    ///     1 sets of 3 cards is required to open
+    /// * Sets excludes Two's and Jokers
+    /// * Two's are wild and can be added to an
+    ///     incomplete set to complete it
+    /// * A player may not open twice
+    ///
+    /// ## Arguments
+    /// `who_opened` - An enum representing which player(s) on the
+    ///                 team have opened
+    /// `hand` - The cards being verified
+    ///
+    /// ## Returns
+    /// A boolean of whether the hand can open or not
     fn hand_can_open(who_opened: WhoOpened, hand: &[Card]) -> bool {
         let mut cards: HashMap<CardValue, usize> = HashMap::new();
         for card in hand.iter() {
             match cards.get_mut(&card.value) {
                 Some(v) => *v += 1,
                 None => {
+                    // Jokers are not counted toward an opening hand
                     if card.value != CardValue::Joker {
                         cards.insert(card.value, 1);
                     }
                 }
             }
         }
-        let twos = match cards.remove(&CardValue::Two) {
+
+        // Two's are not counted toward sets of 3 but are considered wild
+        let mut twos = match cards.remove(&CardValue::Two) {
             Some(n) => n,
             None => 0,
-        };
-        let triples = cards.iter().filter(|(_, &v)| v >= 3).count();
-        let doubles = cards.iter().filter(|(_, &v)| v == 2).count();
+        } as i32;
 
+        // Complete sets
+        let triples = cards.iter().filter(|(_, &v)| v == 3).count();
+        // Sets of 2 (assuming one wild)
+        let doubles = cards.iter().filter(|(_, &v)| v == 2).count();
+        // Sets of 1 (assuming two wilds)
+        let singles = cards.iter().filter(|(_, &v)| v == 1).count();
+        println!(
+            "Twos: {}, Singles: {}, Doubles: {}, Triples: {}",
+            twos, singles, doubles, triples
+        );
         match who_opened {
             WhoOpened::Both | WhoOpened::Me => false,
-            WhoOpened::Partner => std::cmp::min(twos, doubles) + triples >= 1,
-            WhoOpened::Nobody => std::cmp::min(twos, doubles) + triples >= 3,
+            WhoOpened::Partner => {
+                // Verifying that the amount of Two's provided complete the set
+                // in the provided hand
+                twos -= (singles * 2) as i32;
+                if twos != (doubles as i32) {
+                    return false;
+                }
+                singles + doubles + triples == 1
+            }
+            WhoOpened::Nobody => {
+                // Verifying that the amount of Two's provided complete every set
+                // in the provided hand
+                twos -= (singles * 2) as i32;
+                if twos != (doubles as i32) {
+                    return false;
+                }
+                singles + doubles + triples == 3
+            }
         }
     }
 
@@ -192,58 +238,189 @@ mod tests {
     use card_game_engine::models::deck::{Card, CardSuit, CardValue};
 
     use crate::gameplay::PlayerMove;
-    use crate::partners::{Partners, WhoOpened};
+    use crate::partners::WhoOpened;
 
     #[test]
-    fn hand_open() {
-        let mut partners = Partners::new(0, 1);
+    fn hand_open_before_parner() {
+        let mut hand = vec![
+            Card {
+                value: CardValue::Ace,
+                suit: CardSuit::Clubs,
+            };
+            3
+        ];
 
+        assert!(!PlayerMove::hand_can_open(WhoOpened::Nobody, &hand));
+
+        hand.extend_from_slice(&vec![
+            Card {
+                value: CardValue::Three,
+                suit: CardSuit::Clubs,
+            };
+            3
+        ]);
+        hand.extend_from_slice(&vec![
+            Card {
+                value: CardValue::Eight,
+                suit: CardSuit::Clubs,
+            };
+            3
+        ]);
+
+        assert!(PlayerMove::hand_can_open(WhoOpened::Nobody, &hand));
+
+        // Remove eights
+        hand.pop();
+        hand.pop();
+        hand.pop();
+
+        // Replace with 3 Two's (both are wild)
+        hand.extend_from_slice(&vec![
+            Card {
+                value: CardValue::Two,
+                suit: CardSuit::Spades,
+            };
+            3
+        ]);
+
+        /// Invalid opening hand, 3 twos must be independently
+        assert!(!PlayerMove::hand_can_open(WhoOpened::Nobody, &hand));
+
+        hand.pop();
+        hand.pop();
+        hand.push(Card {
+            value: CardValue::Five,
+            suit: CardSuit::Spades,
+        });
+        hand.push(Card {
+            value: CardValue::Jack,
+            suit: CardSuit::Spades,
+        });
+
+        // Invalid opening hand including
+        assert!(!PlayerMove::hand_can_open(WhoOpened::Nobody, &hand));
+
+        hand.clear();
+        hand.extend_from_slice(&vec![
+            Card {
+                value: CardValue::Two,
+                suit: CardSuit::Spades,
+            };
+            6
+        ]);
+        hand.push(Card {
+            value: CardValue::Three,
+            suit: CardSuit::Spades,
+        });
+        hand.push(Card {
+            value: CardValue::Five,
+            suit: CardSuit::Spades,
+        });
+        hand.push(Card {
+            value: CardValue::Seven,
+            suit: CardSuit::Spades,
+        });
+    }
+
+    #[test]
+    fn open_with_wilds_after_partner() {
         let mut hand = vec![
             Card {
                 value: CardValue::Ace,
                 suit: CardSuit::Clubs,
             },
             Card {
+                value: CardValue::Two,
+                suit: CardSuit::Spades,
+            },
+            Card {
+                value: CardValue::Two,
+                suit: CardSuit::Diamonds,
+            },
+        ];
+        assert!(PlayerMove::hand_can_open(WhoOpened::Partner, &hand));
+
+        hand.clear();
+        hand.extend_from_slice(&[
+            Card {
+                value: CardValue::Ace,
+                suit: CardSuit::Clubs,
+            },
+            Card {
                 value: CardValue::Ace,
                 suit: CardSuit::Spades,
             },
             Card {
-                value: CardValue::Ace,
+                value: CardValue::Two,
+                suit: CardSuit::Diamonds,
+            },
+        ]);
+        assert!(PlayerMove::hand_can_open(WhoOpened::Partner, &hand));
+
+        hand.clear();
+        hand.extend_from_slice(&[
+            Card {
+                value: CardValue::Two,
+                suit: CardSuit::Clubs,
+            },
+            Card {
+                value: CardValue::Two,
+                suit: CardSuit::Spades,
+            },
+            Card {
+                value: CardValue::Two,
+                suit: CardSuit::Diamonds,
+            },
+        ]);
+        assert!(!PlayerMove::hand_can_open(WhoOpened::Partner, &hand));
+    }
+
+    #[test]
+    fn opening_twice() {
+        // valid hand
+        let hand = [
+            Card {
+                value: CardValue::Four,
+                suit: CardSuit::Clubs,
+            },
+            Card {
+                value: CardValue::Four,
+                suit: CardSuit::Spades,
+            },
+            Card {
+                value: CardValue::Four,
+                suit: CardSuit::Diamonds,
+            },
+            Card {
+                value: CardValue::Three,
+                suit: CardSuit::Clubs,
+            },
+            Card {
+                value: CardValue::Three,
+                suit: CardSuit::Spades,
+            },
+            Card {
+                value: CardValue::Three,
+                suit: CardSuit::Diamonds,
+            },
+            Card {
+                value: CardValue::Eight,
+                suit: CardSuit::Clubs,
+            },
+            Card {
+                value: CardValue::Eight,
+                suit: CardSuit::Spades,
+            },
+            Card {
+                value: CardValue::Eight,
                 suit: CardSuit::Diamonds,
             },
         ];
 
-        assert!(PlayerMove::hand_can_open(WhoOpened::Partner, &hand));
-        assert!(!PlayerMove::hand_can_open(WhoOpened::Nobody, &hand));
-
-        hand.extend_from_slice(&[
-            Card {
-                value: CardValue::Three,
-                suit: CardSuit::Clubs,
-            },
-            Card {
-                value: CardValue::Three,
-                suit: CardSuit::Spades,
-            },
-            Card {
-                value: CardValue::Three,
-                suit: CardSuit::Diamonds,
-            },
-            Card {
-                value: CardValue::Eight,
-                suit: CardSuit::Clubs,
-            },
-            Card {
-                value: CardValue::Eight,
-                suit: CardSuit::Spades,
-            },
-            Card {
-                value: CardValue::Eight,
-                suit: CardSuit::Diamonds,
-            },
-        ]);
-
-        assert!(PlayerMove::hand_can_open(WhoOpened::Partner, &hand));
         assert!(PlayerMove::hand_can_open(WhoOpened::Nobody, &hand));
+
+        // A player cannot open twice
+        assert!(!PlayerMove::hand_can_open(WhoOpened::Both, &hand));
+        assert!(!PlayerMove::hand_can_open(WhoOpened::Me, &hand));
     }
 }
