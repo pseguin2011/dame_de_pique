@@ -12,9 +12,10 @@ import Deck from '../models/Deck';
 
 import {DECK_CONTAINER_VIEW_STYLE, PLAYER_CONTAINER_VIEW_STYLE, GAME_ACTIONS_STYLE} from '../styles/game_styles';
 import {TITLE_STYLES, GAME_ACTION_STYLE, TEAM_CONTAINER_VIEW_STYLE} from '../styles/game_styles';
+import TeamPoints from '../models/TeamPoints';
 
 type CardType = {value: CARD_VALUE, suit: CARD_SUIT};
-type TeamPoints = {
+type TeamPointsType = {
   'A'?: CardType[], '2'?: CardType[], '3'?: CardType[], '4'?: CardType[],
   '5'?: CardType[], '6'?: CardType[], '7'?: CardType[], '8'?: CardType[],
   '9'?: CardType[], '10'?: CardType[], 'J'?: CardType[], 'Q'?: CardType[],
@@ -25,8 +26,8 @@ type GameState = {
   did_draw: boolean,
   game_state: {
     player_hand: {card: CardType, index: number}[],
-    team1_points: TeamPoints,
-    team2_points: TeamPoints,
+    team1_points: TeamPointsType,
+    team2_points: TeamPointsType,
     top_discard?: CardType,
     turn: number,
   },
@@ -109,48 +110,8 @@ export class Game extends Component {
       return <View style={{backgroundColor: 'darkgreen', height: '100%', overflow: 'scroll'}}>
         <View style={{flexDirection: 'row'}}>
           <View style={{flexDirection: 'column', flex: 4}}>
-            <View style={TEAM_CONTAINER_VIEW_STYLE}>
-            <View style={{flexDirection: 'row'}}>
-                <View style={{flexDirection: 'column'}}>
-                  <Text style={TITLE_STYLES}>Team 1</Text>
-                  <Text>Total Points {this.calculateTeam1RoundPoints()}</Text>
-                </View>
-                <FlatList
-                  horizontal
-                  style={{flexDirection:'row', overflow: 'scroll'}}
-                  data={Object.entries(this.state.game_state.team1_points)}
-                  renderItem={({item}: {item: [string, CardType[] | undefined]}) => {
-                    var cards = item[1]?.map(card => { 
-                      return <View style={{marginRight: -55, paddingBottom: 30 }}>
-                        <Card value={card.value} suit={card.suit} selected={false}/>
-                      </View>
-                    });
-                    return <View style={{flexDirection: 'row', paddingRight: 50}}>{cards}</View>;
-                  }}
-                />
-              </View>
-            </View>
-            <View style={TEAM_CONTAINER_VIEW_STYLE}>
-              <View style={{flexDirection: 'row'}}>
-                <View style={{flexDirection: 'column'}}>
-                  <Text style={TITLE_STYLES}>Team 2</Text>
-                  <Text>Total Points {this.calculateTeam2RoundPoints()}</Text>
-                </View>
-                <FlatList
-                  horizontal
-                  style={{flexDirection:'row', overflow: 'scroll'}}
-                  data={Object.entries(this.state.game_state.team2_points)}
-                  renderItem={({item}: {item: [string, CardType[] | undefined]}) => {
-                    var cards = item[1]?.map(card => {
-                      return <View style={{marginRight: -55, paddingBottom: 30 }}>
-                        <Card value={card.value} suit={card.suit} selected={false}/>
-                      </View>;
-                    });
-                    return <View style={{flexDirection: 'row', paddingRight: 50}}>{cards}</View>;
-                  }}
-                />
-              </View>
-            </View>
+            <TeamPoints team_points={this.state.game_state.team1_points} team_name="Team 1" />
+            <TeamPoints team_points={this.state.game_state.team2_points} team_name="Team 2" />
           </View>
           <View style={DECK_CONTAINER_VIEW_STYLE}>
               <Deck/>
@@ -224,26 +185,6 @@ export class Game extends Component {
       </View>;
   }
 
-  calculateTeam1RoundPoints(): number {
-    var total = 0;
-    Object.entries(this.state.game_state.team1_points).forEach(value => {
-      value[1]?.forEach((card:CardType) => {
-        total += (POINT_VALUES as any)[card.value][card.suit];
-      });
-    });
-    return total;
-  }
-
-  calculateTeam2RoundPoints(): number {
-    var total = 0;
-    Object.entries(this.state.game_state.team2_points).forEach(value => {
-      value[1]?.forEach((card: CardType) => {
-        total += (POINT_VALUES as any)[card.value][card.suit];
-      });
-    });
-    return total;
-  }
-
   /// ## Purpose
   /// Searches through the player's hand to find cards with a selected state of true
   ///
@@ -258,24 +199,6 @@ export class Game extends Component {
     return indices;
   }
 }
-
-const POINT_VALUES = {
-  '': {'': 0},
-  'A': {'Spades':15, 'Hearts':15,'Diamonds':15, 'Clubs':15},
-  '2': {'Spades':20, 'Hearts':20,'Diamonds':20, 'Clubs':20},
-  '3': {'Spades':5, 'Hearts':5,'Diamonds':5, 'Clubs':5},
-  '4': {'Spades':5, 'Hearts':5,'Diamonds':5, 'Clubs':5},
-  '5': {'Spades':5, 'Hearts':5,'Diamonds':5, 'Clubs':5},
-  '6': {'Spades':5, 'Hearts':5,'Diamonds':5, 'Clubs':5},
-  '7': {'Spades':5, 'Hearts':5,'Diamonds':5, 'Clubs':5},
-  '8': {'Spades':5, 'Hearts':5,'Diamonds':5, 'Clubs':5},
-  '9': {'Spades':5, 'Hearts':5,'Diamonds':5, 'Clubs':5},
-  '10': {'Spades':10, 'Hearts':10, 'Diamonds':10, 'Clubs':10},
-  'J':  {'Spades':10, 'Hearts':10, 'Diamonds':10, 'Clubs':10},
-  'Q':  {'Spades':100, 'Hearts':10, 'Diamonds':10, 'Clubs':10},
-  'K':  {'Spades':10, 'Hearts':10, 'Diamonds':10, 'Clubs':10},
-  'Joker': {'Black':50, 'Red':50},
-};
 
 export default function(props: any) {
   const route = useRoute();
