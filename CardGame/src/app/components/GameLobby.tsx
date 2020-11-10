@@ -2,6 +2,7 @@ import React, { Component} from "react";
 import { useRoute } from '@react-navigation/native';
 import { View, Text, StyleProp, ViewStyle, Button } from "react-native";
 import { FlatList } from "react-native-gesture-handler";
+import network_config from '../config/Config';
 
 type GameSession = {game_id: string, players: string[]}
 type WebSocketResponse = {response_type: string, data: any};
@@ -10,8 +11,8 @@ class GameLobby extends Component {
   state: GameSession;
   socket: WebSocket | undefined;
   name: string;
-  host = '10.0.0.153';
-  port = 8000;
+  host = network_config.host;
+  port = network_config.port;
 
   constructor(props: {route: any, navigation: any}) {
     super(props);
@@ -40,7 +41,7 @@ class GameLobby extends Component {
             )}
           />
           <Button 
-            // disabled={this.state.players.length < 4}
+            disabled={this.state.players.length < 4}
             onPress={
               async () => {
                 this.startGame()

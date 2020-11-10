@@ -2,7 +2,7 @@ import React, { Component} from "react";
 import {Card} from "../models/Card";
 import { View, Button, TextInput } from "react-native";
 import { uniqueNamesGenerator, Config, adjectives, names } from 'unique-names-generator';
-
+import network_config from '../config/Config';
 type Player = {username: string};
 
 const config: Config = {
@@ -13,8 +13,8 @@ const config: Config = {
 
 export default class Login extends Component {
   state: Player;
-  host = '10.0.0.153';
-  port = 8000;
+  host = network_config.host;
+  port = network_config.port;
   constructor(props: any) {
     super(props);
     this.state = {username: uniqueNamesGenerator(config)};

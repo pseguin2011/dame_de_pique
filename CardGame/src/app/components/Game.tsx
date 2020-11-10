@@ -6,6 +6,7 @@ import { useRoute } from '@react-navigation/native';
 
 import GameClient from "../clients/game_client";
 
+import network_config from '../config/Config';
 import {Card, CARD_SUIT, CARD_VALUE} from '../models/Card';
 import Deck from '../models/Deck';
 
@@ -35,8 +36,8 @@ type WebSocketResponse = {response_type: string, data: any};
 
 export class Game extends Component {
   state: GameState;
-  host = '10.0.0.153';
-  port = 8000;
+  host = network_config.host;
+  port = network_config.port;
   client: GameClient;
   game_id: string;
   socket: WebSocket;
@@ -177,7 +178,7 @@ export class Game extends Component {
         <View style={GAME_ACTIONS_STYLE}>
           <View style={GAME_ACTION_STYLE}>
             <Button
-              // disabled={this.player_id != this.state.game_state.turn || this.state.did_draw}
+              disabled={this.player_id != this.state.game_state.turn || this.state.did_draw}
               title="Draw Card"
               color="#678547"
               onPress={async()=>{ await this.drawCardAction(); }}/>
