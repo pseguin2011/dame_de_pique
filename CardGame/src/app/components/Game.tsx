@@ -172,7 +172,10 @@ export class Game extends Component {
               disabled={this.player_id != this.state.game_state.turn || !this.state.did_draw}
               title="Add Points"
               color="#678547"
-              onPress={async()=>{}}/>
+              onPress={async()=>{
+
+                this.client.addPointsAction(this.getSelectedCards());
+              }}/>
           </View>
           <View style={GAME_ACTION_STYLE}>
             <Button

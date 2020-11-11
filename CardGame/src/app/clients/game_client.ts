@@ -48,6 +48,22 @@ export default class GameClient {
     });
   }
 
+  async addPointsAction(cards: number[]) {
+    await fetch('http://' + this.host + ':' + this.port + '/player-add-points', {
+      method: "POST",
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(
+        {'game_id': this.game_id, 'card_indices': cards}
+      )
+    }).catch((e) => {alert("Could add points. Either a set of 3, cards already in the points deck, Joker, or 2 is required for this action."); throw e;} )
+    .then((_) => {
+
+    });
+  }
+
   async pickupDiscardAction(cards: number[]) {
     await fetch('http://' + this.host + ':' + this.port + '/player-pickup-discard', {
       method: "POST",
