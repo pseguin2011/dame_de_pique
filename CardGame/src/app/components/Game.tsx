@@ -84,6 +84,13 @@ export class Game extends Component {
     });
   }
 
+  pickupDiscardAction() {
+    this.client.pickupDiscardAction(this.getSelectedCards(), async() => {
+      this.state.did_draw = true;
+      this.forceUpdate();
+    });
+  }
+
   /// Discards a single selected card
   /// Resets the did_draw value so the correct buttons are disabled
   discardAction() {
@@ -149,14 +156,7 @@ export class Game extends Component {
               disabled={this.player_id != this.state.game_state.turn || this.state.did_draw}
               title="Pickup Deck"
               color="#678547"
-              onPress={async()=>{
-                await this.client.pickupDiscardAction(this.getSelectedCards()).catch((e) => {
-                  alert("Could not pickup the deck. " + e);
-                  return;
-                });
-                this.state.did_draw = true;
-                this.forceUpdate();
-              }}/>
+              onPress={async()=>{ await this.pickupDiscardAction();}}/>
           </View>
           <View style={GAME_ACTION_STYLE}>
             <Button
@@ -173,7 +173,6 @@ export class Game extends Component {
               title="Add Points"
               color="#678547"
               onPress={async()=>{
-
                 this.client.addPointsAction(this.getSelectedCards());
               }}/>
           </View>

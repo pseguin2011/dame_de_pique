@@ -64,7 +64,7 @@ export default class GameClient {
     });
   }
 
-  async pickupDiscardAction(cards: number[]) {
+  async pickupDiscardAction(cards: number[], post_event: () => {}) {
     await fetch('http://' + this.host + ':' + this.port + '/player-pickup-discard', {
       method: "POST",
       headers: {
@@ -74,9 +74,9 @@ export default class GameClient {
       body: JSON.stringify(
         {'game_id': this.game_id, 'card_indices': cards}
       )
-    }).catch((e) => {alert("Could not Open. 3 sets of 3 are required if your opponent has not opened. 1 set of 3 is required if they have opened."); throw e;} )
+    }).catch((e) => { alert("Could not pickup the discard pile, an error occured."); throw e;} )
     .then((_) => {
-
+      post_event();
     });
   }
 

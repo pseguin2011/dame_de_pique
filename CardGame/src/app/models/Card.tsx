@@ -4,7 +4,7 @@ import { View, Text, TextStyle, ViewStyle } from 'react-native';
 const card_style: ViewStyle = {
     borderStyle: 'solid',
     borderWidth: 3,
-    borderRadius: 3,
+    borderRadius: 7,
     width: 80, 
     height: 100,
     backgroundColor: 'white',
