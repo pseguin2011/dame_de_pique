@@ -48,7 +48,7 @@ impl Into<Config> for ConfigJson {
 /// # Returns
 /// A config object with the host and port of the server
 pub fn load_config() -> Config {
-    let mut file = File::open("../network.json").unwrap();
+    let mut file = File::open("../common/network.json").unwrap();
     let mut data = String::new();
     file.read_to_string(&mut data).unwrap();
     let config: ConfigJson = serde_json::from_str(&data).unwrap();

@@ -117,7 +117,10 @@ async fn main() {
 
     println!("Listening on {}:{}", config.host, config.port);
     warp::serve(routes)
-        .run(SocketAddr::new(config.host, config.port))
+        .run(SocketAddr::new(
+            std::net::IpAddr::from(std::net::Ipv4Addr::new(127, 0, 0, 1)),
+            config.port,
+        ))
         .await;
 }
 

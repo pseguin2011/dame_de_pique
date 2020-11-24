@@ -1,4 +1,4 @@
-import network_config from '../../../network.json';
+import network_config from '../../../../common/network.json';
 
 export default {
     host: network_config.server_host,
