@@ -1,16 +1,16 @@
+use std::collections::HashSet;
+use warp::http::StatusCode;
+use warp::reply::{json, Reply};
+use warp::ws::Message;
+
+use crate::config;
 use crate::models::{
     GameResponse, GameSession, GameSessionListResponse, GameSessions, Player, PlayerExists,
     PlayerResponse, Players, RegisterGameRequest, RegisterPlayerRequest, StartGameRequest,
     StartGameResponse, TooManyPlayers, WebSocketResponse,
 };
 use crate::Result;
-use std::collections::HashSet;
-use warp::http::StatusCode;
-use warp::reply::{json, Reply};
-use warp::ws::Message;
 
-const SITE_URL: &str = "localhost";
-const SITE_PORT: usize = 8000;
 /// Handler for game registration
 ///
 /// ## Purpose
@@ -33,7 +33,6 @@ pub async fn register_game_handler(
         sessions,
     )
     .await;
-    println!("Game Session returned: {:?}", game_session);
     Ok(json(&game_session?))
 }
 
@@ -148,11 +147,12 @@ async fn register_player(username: String, players: Players) -> Result<PlayerRes
     if players.contains_key(&username) {
         return Err(warp::reject::custom(PlayerExists));
     }
-    // let uuid = Uuid::new_v4().to_string();
+
+    let config = config::load_config();
     let player_response = PlayerResponse {
         username: username.clone(),
         game_session_id: None,
-        websocket_url: format!("ws://{}:{}/ws/{}", SITE_URL, SITE_PORT, username),
+        websocket_url: format!("ws://{}:{}/ws/{}", config.host, config.port, username),
     };
     players.insert(
         username.clone(),

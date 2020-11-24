@@ -117,6 +117,26 @@ impl PlayerMove {
             WhoOpened::Me | WhoOpened::Both => true,
         }
     }
+
+    fn player_can_pickup_top_discard(turn: usize, game: &mut DDPState) -> bool {
+        let top_card = game.default_state.deck.peek_top_discarded_card().cloned();
+        let who_opened = &game.get_partners_from_player(turn).who_opened(turn);
+        let points_deck = &game.get_partners_from_player(turn).points_deck;
+
+        if let Some(top_card) = top_card {
+            let can_pickup = top_card.value != CardValue::Joker
+                && top_card.value != CardValue::Two
+                && (!points_deck.contains_key(&top_card.value)
+                    || match who_opened {
+                        WhoOpened::Nobody | WhoOpened::Partner => true,
+                        _ => false,
+                    });
+            println!("Can Pickup {}", can_pickup);
+            can_pickup
+        } else {
+            false
+        }
+    }
 }
 
 impl GameBuilder for DameDePiqueGameBuilder {
@@ -176,7 +196,11 @@ impl GameMove<DDPState> for PlayerMove {
                 if PlayerMove::hand_can_open(
                     game.get_partners_from_player(turn).who_opened(turn),
                     &cards,
-                ) {
+                ) || !PlayerMove::player_can_pickup_top_discard(turn, game)
+                {
+                    println!(
+                        "The user could already open or the top card was not valid to pickup."
+                    );
                     return Err(DameDePiqueError::InvalidDiscardOpeningHand(
                         game.default_state.turn,
                     ));
@@ -190,6 +214,7 @@ impl GameMove<DDPState> for PlayerMove {
                     game.get_partners_from_player(turn).who_opened(turn),
                     &cards,
                 ) {
+                    println!("The hand wasn't a valid to open with");
                     return Err(DameDePiqueError::InvalidDiscardOpeningHand(
                         game.default_state.turn,
                     ));
