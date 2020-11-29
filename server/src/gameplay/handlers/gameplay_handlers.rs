@@ -5,11 +5,16 @@ use crate::gameplay::gameplay_models::{
 use crate::models::{GameSessions, Players, WebSocketResponse};
 use crate::Result;
 use game::gameplay::PlayerMove;
-use game::{GameMove, GameState};
+use game::rules::GameRules;
+use game::state::GameState;
+use game::gameplay::DameDePiqueGameBuilder;
+use game::Game;
 use std::collections::HashMap;
 use warp::http::StatusCode;
 use warp::reply::{json, Reply};
 use warp::ws::Message;
+
+type DameDePiqueGame = Game<DameDePiqueGameBuilder, PlayerMove>;
 
 pub async fn get_game_state_handler(
     params: HashMap<String, String>,
@@ -36,7 +41,7 @@ pub async fn draw_card_handler(
 ) -> Result<impl Reply> {
     println!("Draw Card Request");
     if let Some(game) = sessions.write().await.get_mut(&params["game-id"]) {
-        PlayerMove::handle_move(&PlayerMove::Draw, &mut game.state).unwrap();
+        DameDePiqueGame::game_action(PlayerMove::Draw, &mut game.state).unwrap();
         Ok(StatusCode::OK)
     } else {
         Err(warp::reject::not_found())
@@ -50,8 +55,8 @@ pub async fn discard_handler(
 ) -> Result<impl Reply> {
     println!("End Turn Request");
     if let Some(game) = sessions.write().await.get_mut(&request.game_id) {
-        PlayerMove::handle_move(&PlayerMove::Discard(request.card_index), &mut game.state).unwrap();
-        game.state.end_turn();
+        DameDePiqueGame::game_action(PlayerMove::Discard(request.card_index), &mut game.state).unwrap();
+        PlayerMove::end_turn(&mut game.state);
         players.read().await.iter().for_each(|(_, player)| {
             if let Some(sender) = &player.sender {
                 sender
@@ -85,8 +90,8 @@ pub async fn player_open_handler(
             .enumerate()
             .filter(|(i, _c)| request.card_indices.contains(i))
             .map(|c| c.1.clone())
-            .collect::<Vec<game::Card>>();
-        if PlayerMove::handle_move(&PlayerMove::Open(cards), &mut game.state).is_err() {
+            .collect::<Vec<game::models::Card>>();
+        if DameDePiqueGame::game_action(PlayerMove::Open(cards), &mut game.state).is_err() {
             return Err(warp::reject::reject());
         } else {
             for i in request.card_indices.iter().rev() {
@@ -129,8 +134,8 @@ pub async fn player_add_points_handler(
             .enumerate()
             .filter(|(i, _c)| request.card_indices.contains(i))
             .map(|c| c.1.clone())
-            .collect::<Vec<game::Card>>();
-        if PlayerMove::handle_move(&PlayerMove::AddPoints(cards), &mut game.state).is_err() {
+            .collect::<Vec<game::models::Card>>();
+        if DameDePiqueGame::game_action(PlayerMove::AddPoints(cards), &mut game.state).is_err() {
             return Err(warp::reject::reject());
         } else {
             for i in request.card_indices.iter().rev() {
@@ -175,7 +180,7 @@ pub async fn player_pickup_discard_handler(
             );
         }
 
-        if PlayerMove::handle_move(&PlayerMove::TakeDiscardPile(cards.clone()), &mut game.state)
+        if DameDePiqueGame::game_action(PlayerMove::TakeDiscardPile(cards.clone()), &mut game.state)
             .is_err()
         {
             cards.iter().for_each(|c| {

@@ -3,6 +3,9 @@ use warp::http::StatusCode;
 use warp::reply::{json, Reply};
 use warp::ws::Message;
 
+use game::gameplay::{DameDePiqueGameBuilder, PlayerMove};
+use game::Game;
+
 use crate::config;
 use crate::models::{
     GameResponse, GameSession, GameSessionListResponse, GameSessions, Player, PlayerExists,
@@ -10,6 +13,8 @@ use crate::models::{
     StartGameResponse, TooManyPlayers, WebSocketResponse,
 };
 use crate::Result;
+
+type DameDePiqueGame = Game<DameDePiqueGameBuilder, PlayerMove>;
 
 /// Handler for game registration
 ///
@@ -93,11 +98,7 @@ async fn register_game(
             };
             let game_session = GameSession {
                 inner: game_response.clone(),
-                state: game::Game::<game::gameplay::DDPState>::new_game::<
-                    game::gameplay::DameDePiqueGameBuilder,
-                >()
-                .unwrap()
-                .state,
+                state: DameDePiqueGame::new_game().unwrap(),
             };
 
             sessions.insert(game_id.clone(), game_session);

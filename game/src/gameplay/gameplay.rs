@@ -1,11 +1,15 @@
 use crate::error::DameDePiqueError;
 use crate::partners::{Partners, WhoOpened};
-use card_game_engine::game::{DefaultGameState, Game, GameBuilder, GameRunner, GameState};
+use card_game_engine::builder::GameBuilder;
+use card_game_engine::game::Game;
 use card_game_engine::models::deck::{Card, CardValue, Deck, DeckType};
 use card_game_engine::models::player::Player;
-use card_game_engine::moves::{DefaultMove, GameMove};
+use card_game_engine::rules::{DefaultMove, GameRules};
+use card_game_engine::state::GameState;
 
 use std::collections::HashMap;
+
+const GAME_POINT_TOTAL: u16 = 1000;
 
 #[derive(Clone)]
 pub enum PlayerMove {
@@ -18,14 +22,8 @@ pub enum PlayerMove {
 
 #[derive(Clone)]
 pub struct DDPState {
-    pub default_state: DefaultGameState,
+    pub default_state: GameState,
     pub partners: Vec<Partners>,
-}
-
-impl GameState for DDPState {
-    fn end_turn(&mut self) {
-        self.default_state.end_turn();
-    }
 }
 
 impl DDPState {
@@ -141,8 +139,8 @@ impl PlayerMove {
 
 impl GameBuilder for DameDePiqueGameBuilder {
     type E = DameDePiqueError;
-    type G = Game<DDPState>;
-    fn initialize_game() -> Result<Self::G, Self::E> {
+    type S = DDPState;
+    fn initialize_game() -> Result<Self::S, Self::E> {
         let mut deck = Deck::new(DeckType::WithJokers);
         deck.extend(Deck::new(DeckType::WithJokers));
         deck.shuffle();
@@ -158,20 +156,19 @@ impl GameBuilder for DameDePiqueGameBuilder {
         }
 
         let state = DDPState {
-            default_state: DefaultGameState {
+            default_state: GameState {
                 players,
                 deck,
                 turn: 0,
             },
             partners: vec![Partners::new(0, 2), Partners::new(1, 3)],
         };
-        Ok(Game { state })
+        Ok(state)
     }
 }
 
-impl GameMove<DDPState> for PlayerMove {
-    type E = DameDePiqueError;
-    fn handle_move(&self, game: &mut DDPState) -> Result<(), Self::E> {
+impl GameRules<DDPState, DameDePiqueError> for PlayerMove {
+    fn handle_move(&self, game: &mut DDPState) -> Result<(), DameDePiqueError> {
         match self {
             PlayerMove::Draw => {
                 if let Err(e) =
@@ -265,10 +262,32 @@ impl GameMove<DDPState> for PlayerMove {
         }
         Ok(())
     }
+
+    fn is_game_over(state: &mut DDPState) -> Result<bool, DameDePiqueError> {
+        for partner in state.partners.iter() {
+            if partner.get_points_total() >= GAME_POINT_TOTAL {
+                return Ok(true);
+            }
+        }
+        Ok(false)
+    }
+
+    fn is_round_over(state: &mut DDPState) -> Result<bool, DameDePiqueError> {
+        for player in state.default_state.players.iter() {
+            if player.hand.is_empty() {
+                return Ok(true);
+            }
+        }
+        Ok(false)
+    }
+
+    fn end_turn(state: &mut DDPState) {
+        DefaultMove::end_turn(&mut state.default_state);
+    }
 }
 
 mod tests {
-    use card_game_engine::game::GameBuilder;
+    use card_game_engine::builder::GameBuilder;
     use card_game_engine::models::deck::{Card, CardSuit, CardValue};
 
     use crate::gameplay::PlayerMove;

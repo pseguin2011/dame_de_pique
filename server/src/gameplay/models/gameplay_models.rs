@@ -1,5 +1,5 @@
 use game::gameplay::DDPState;
-use game::CardValue;
+use game::models::CardValue;
 use serde::{Deserialize, Serialize};
 
 use std::collections::HashMap;
@@ -83,8 +83,8 @@ impl From<DDPState> for PlayerGameStateResponse {
     }
 }
 
-impl From<game::Card> for Card {
-    fn from(other: game::Card) -> Card {
+impl From<game::models::Card> for Card {
+    fn from(other: game::models::Card) -> Card {
         let value = match other.value {
             CardValue::Ace => "A".into(),
             CardValue::Two => "2".into(),
