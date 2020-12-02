@@ -1,10 +1,9 @@
 use crate::error::DameDePiqueError;
 use crate::partners::{Partners, WhoOpened};
 use card_game_engine::builder::GameBuilder;
-use card_game_engine::game::Game;
 use card_game_engine::models::deck::{Card, CardValue, Deck, DeckType};
 use card_game_engine::models::player::Player;
-use card_game_engine::rules::{DefaultMove, GameRules};
+use card_game_engine::rules::{DefaultMove, GameRules, GameStatus};
 use card_game_engine::state::GameState;
 
 use std::collections::HashMap;
@@ -168,7 +167,7 @@ impl GameBuilder for DameDePiqueGameBuilder {
 }
 
 impl GameRules<DDPState, DameDePiqueError> for PlayerMove {
-    fn handle_move(&self, game: &mut DDPState) -> Result<(), DameDePiqueError> {
+    fn handle_move(&self, game: &mut DDPState) -> Result<GameStatus, DameDePiqueError> {
         match self {
             PlayerMove::Draw => {
                 if let Err(e) =
@@ -260,25 +259,25 @@ impl GameRules<DDPState, DameDePiqueError> for PlayerMove {
                     .add_points(cards.to_vec());
             }
         }
-        Ok(())
+        Ok(GameStatus::Active)
     }
 
-    fn is_game_over(state: &mut DDPState) -> Result<bool, DameDePiqueError> {
+    fn is_game_over(state: &mut DDPState) -> bool {
         for partner in state.partners.iter() {
             if partner.get_points_total() >= GAME_POINT_TOTAL {
-                return Ok(true);
+                return true;
             }
         }
-        Ok(false)
+        false
     }
 
-    fn is_round_over(state: &mut DDPState) -> Result<bool, DameDePiqueError> {
+    fn is_round_over(state: &mut DDPState) -> bool {
         for player in state.default_state.players.iter() {
             if player.hand.is_empty() {
-                return Ok(true);
+                return true;
             }
         }
-        Ok(false)
+        false
     }
 
     fn end_turn(state: &mut DDPState) {
@@ -287,11 +286,14 @@ impl GameRules<DDPState, DameDePiqueError> for PlayerMove {
 }
 
 mod tests {
-    use card_game_engine::builder::GameBuilder;
-    use card_game_engine::models::deck::{Card, CardSuit, CardValue};
-
+    #[allow(unused_imports)]
     use crate::gameplay::PlayerMove;
+    #[allow(unused_imports)]
     use crate::partners::WhoOpened;
+    #[allow(unused_imports)]
+    use card_game_engine::builder::GameBuilder;
+    #[allow(unused_imports)]
+    use card_game_engine::models::deck::{Card, CardSuit, CardValue};
 
     #[test]
     fn hand_open_before_parner() {
@@ -336,7 +338,7 @@ mod tests {
             3
         ]);
 
-        /// Invalid opening hand, 3 twos must be independently
+        // Invalid opening hand, 3 twos must be independently
         assert!(!PlayerMove::hand_can_open(WhoOpened::Nobody, &hand));
 
         hand.pop();
