@@ -128,6 +128,7 @@ export class Game extends Component {
 
         <View style={PLAYER_CONTAINER_VIEW_STYLE}>
           <Text style={TITLE_STYLES}>Player</Text>
+          <Text> You are player {this.player_id + 1} on team {((this.player_id % 2) == 0) ? 1 : 2} </Text>
           <FlatList
             horizontal
             style={{flexDirection:'row'}}
