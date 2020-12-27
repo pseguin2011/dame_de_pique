@@ -9,6 +9,7 @@ enum TeamOpenStatus {
     Both,
 }
 
+#[derive(Debug)]
 pub enum WhoOpened {
     Both,
     Me,

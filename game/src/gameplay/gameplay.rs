@@ -115,6 +115,8 @@ impl PlayerMove {
         }
     }
 
+    /// Returns whether the top card is even a card that is allowed to be picked up
+    /// e.g. Not a 2, Joker or a card in the player's shared points
     fn player_can_pickup_top_discard(turn: usize, game: &mut DDPState) -> bool {
         let top_card = game.default_state.deck.peek_top_discarded_card().cloned();
         let who_opened = &game.get_partners_from_player(turn).who_opened(turn);
@@ -128,7 +130,10 @@ impl PlayerMove {
                         WhoOpened::Nobody | WhoOpened::Partner => true,
                         _ => false,
                     });
-            println!("Can Pickup {}", can_pickup);
+            println!(
+                "The player is allowed to pickup the top discard: {}",
+                can_pickup
+            );
             can_pickup
         } else {
             false
@@ -184,6 +189,8 @@ impl GameRules<DDPState, DameDePiqueError> for PlayerMove {
                 }
             }
             PlayerMove::TakeDiscardPile(cards) => {
+                // Rules: A user can pickup the discard pile at all times,
+                // If the user hasn't opened, then the restrictions
                 let turn = game.default_state.turn;
                 let mut cards = cards.clone();
 
@@ -205,15 +212,30 @@ impl GameRules<DDPState, DameDePiqueError> for PlayerMove {
                 if let Some(card) = game.default_state.deck.peek_top_discarded_card() {
                     cards.push(card.clone());
                 }
-
-                if !PlayerMove::hand_can_open(
-                    game.get_partners_from_player(turn).who_opened(turn),
-                    &cards,
-                ) {
-                    println!("The hand wasn't a valid to open with");
-                    return Err(DameDePiqueError::InvalidDiscardOpeningHand(
-                        game.default_state.turn,
-                    ));
+                match game.get_partners_from_player(turn).who_opened(turn) {
+                    WhoOpened::Nobody | WhoOpened::Partner => {
+                        if !PlayerMove::hand_can_open(
+                            game.get_partners_from_player(turn).who_opened(turn),
+                            &cards,
+                        ) {
+                            println!(
+                                "The hand wasn't valid to open with, {:?} : {:?}",
+                                &cards,
+                                game.get_partners_from_player(turn).who_opened(turn)
+                            );
+                            return Err(DameDePiqueError::InvalidDiscardOpeningHand(
+                                game.default_state.turn,
+                            ));
+                        }
+                    }
+                    _ => {
+                        if !PlayerMove::hand_can_open(WhoOpened::Partner, &cards) {
+                            println!("The hand wasn't valid to pickup deck with, {:?}", &cards);
+                            return Err(DameDePiqueError::InvalidDiscardOpeningHand(
+                                game.default_state.turn,
+                            ));
+                        }
+                    }
                 }
                 // Valid Opening hand to pickup the discard pile so we remove the top card of the dicard pile
                 game.default_state.deck.pop_top_discarded_card();

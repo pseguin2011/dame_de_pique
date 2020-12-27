@@ -56,8 +56,13 @@ pub async fn discard_handler(
 ) -> Result<impl Reply> {
     println!("End Turn Request");
     if let Some(game) = sessions.write().await.get_mut(&request.game_id) {
-        DameDePiqueGame::game_action(PlayerMove::Discard(request.card_index), &mut game.state)
-            .unwrap();
+        handle_game_status(
+            DameDePiqueGame::game_action(PlayerMove::Discard(request.card_index), &mut game.state)
+                .unwrap(),
+            game,
+            players.clone(),
+        )
+        .await;
         PlayerMove::end_turn(&mut game.state);
 
         let message = WebSocketResponse {
@@ -86,14 +91,16 @@ pub async fn player_open_handler(
             .filter(|(i, _c)| request.card_indices.contains(i))
             .map(|c| c.1.clone())
             .collect::<Vec<game::models::Card>>();
-        if DameDePiqueGame::game_action(PlayerMove::Open(cards), &mut game.state).is_err() {
-            return Err(warp::reject::reject());
-        } else {
-            for i in request.card_indices.iter().rev() {
-                game.state.default_state.players[game.state.default_state.turn]
-                    .hand
-                    .remove(*i);
+        match DameDePiqueGame::game_action(PlayerMove::Open(cards), &mut game.state) {
+            Ok(GameStatus::Active) => {
+                for i in request.card_indices.iter().rev() {
+                    game.state.default_state.players[game.state.default_state.turn]
+                        .hand
+                        .remove(*i);
+                }
             }
+            Err(_) => return Err(warp::reject::reject()),
+            Ok(other_status) => handle_game_status(other_status, game, players.clone()).await,
         }
 
         let message = WebSocketResponse {
@@ -122,14 +129,16 @@ pub async fn player_add_points_handler(
             .filter(|(i, _c)| request.card_indices.contains(i))
             .map(|c| c.1.clone())
             .collect::<Vec<game::models::Card>>();
-        if DameDePiqueGame::game_action(PlayerMove::AddPoints(cards), &mut game.state).is_err() {
-            return Err(warp::reject::reject());
-        } else {
-            for i in request.card_indices.iter().rev() {
-                game.state.default_state.players[game.state.default_state.turn]
-                    .hand
-                    .remove(*i);
+        match DameDePiqueGame::game_action(PlayerMove::AddPoints(cards), &mut game.state) {
+            Ok(GameStatus::Active) => {
+                for i in request.card_indices.iter().rev() {
+                    game.state.default_state.players[game.state.default_state.turn]
+                        .hand
+                        .remove(*i);
+                }
             }
+            Err(_) => return Err(warp::reject::reject()),
+            Ok(other_status) => handle_game_status(other_status, game, players.clone()).await,
         }
 
         let message = WebSocketResponse {
@@ -159,18 +168,23 @@ pub async fn player_pickup_discard_handler(
             );
         }
 
-        if DameDePiqueGame::game_action(PlayerMove::TakeDiscardPile(cards.clone()), &mut game.state)
-            .is_err()
-        {
-            cards.iter().for_each(|c| {
+        match DameDePiqueGame::game_action(
+            PlayerMove::TakeDiscardPile(cards.clone()),
+            &mut game.state,
+        ) {
+            Err(_) => {
+                cards.iter().for_each(|c| {
+                    game.state.default_state.players[game.state.default_state.turn]
+                        .hand
+                        .push(c.clone())
+                });
                 game.state.default_state.players[game.state.default_state.turn]
                     .hand
-                    .push(c.clone())
-            });
-            game.state.default_state.players[game.state.default_state.turn]
-                .hand
-                .sort();
-            return Err(warp::reject::reject());
+                    .sort();
+                return Err(warp::reject::reject());
+            }
+            Ok(GameStatus::Active) => {}
+            Ok(other_status) => handle_game_status(other_status, game, players.clone()).await,
         }
 
         let message = WebSocketResponse {
