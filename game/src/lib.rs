@@ -9,5 +9,6 @@ pub mod models {
 }
 pub mod rules {
     pub use card_game_engine::rules::GameRules;
+    pub use card_game_engine::rules::GameStatus;
 }
 pub use card_game_engine::game::Game;

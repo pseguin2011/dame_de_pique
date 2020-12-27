@@ -239,3 +239,4 @@ pub async fn unregister_player_handler(
     }
     Ok(json(&removed_player))
 }
+

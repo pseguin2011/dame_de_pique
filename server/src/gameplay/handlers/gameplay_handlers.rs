@@ -2,13 +2,14 @@ use crate::gameplay::gameplay_models::{
     GameDiscardRequest, PlayerAddPointsRequest, PlayerGameStateResponse, PlayerOpenRequest,
     PlayerPickupDiscardRequest,
 };
-use crate::models::{GameSessions, Players, WebSocketResponse};
+use crate::models::{GameSession, GameSessions, Players, WebSocketResponse};
 use crate::Result;
-use game::gameplay::PlayerMove;
-use game::rules::GameRules;
-use game::state::GameState;
 use game::gameplay::DameDePiqueGameBuilder;
+use game::gameplay::PlayerMove;
+use game::rules::{GameRules, GameStatus};
+use game::state::GameState;
 use game::Game;
+use serde::Serialize;
 use std::collections::HashMap;
 use warp::http::StatusCode;
 use warp::reply::{json, Reply};
@@ -55,21 +56,15 @@ pub async fn discard_handler(
 ) -> Result<impl Reply> {
     println!("End Turn Request");
     if let Some(game) = sessions.write().await.get_mut(&request.game_id) {
-        DameDePiqueGame::game_action(PlayerMove::Discard(request.card_index), &mut game.state).unwrap();
+        DameDePiqueGame::game_action(PlayerMove::Discard(request.card_index), &mut game.state)
+            .unwrap();
         PlayerMove::end_turn(&mut game.state);
-        players.read().await.iter().for_each(|(_, player)| {
-            if let Some(sender) = &player.sender {
-                sender
-                    .send(Ok(Message::text(
-                        serde_json::to_string(&WebSocketResponse {
-                            response_type: "GameState".into(),
-                            data: {},
-                        })
-                        .unwrap(),
-                    )))
-                    .unwrap();
-            }
-        });
+
+        let message = WebSocketResponse {
+            response_type: "GameState".into(),
+            data: {},
+        };
+        send_message_to_players(message, game, players).await;
         Ok(StatusCode::OK)
     } else {
         Err(warp::reject::not_found())
@@ -101,19 +96,11 @@ pub async fn player_open_handler(
             }
         }
 
-        players.read().await.iter().for_each(|(_, player)| {
-            if let Some(sender) = &player.sender {
-                sender
-                    .send(Ok(Message::text(
-                        serde_json::to_string(&WebSocketResponse {
-                            response_type: "GameState".into(),
-                            data: {},
-                        })
-                        .unwrap(),
-                    )))
-                    .unwrap();
-            }
-        });
+        let message = WebSocketResponse {
+            response_type: "GameState".into(),
+            data: {},
+        };
+        send_message_to_players(message, game, players).await;
         Ok(StatusCode::OK)
     } else {
         Err(warp::reject::not_found())
@@ -145,19 +132,11 @@ pub async fn player_add_points_handler(
             }
         }
 
-        players.read().await.iter().for_each(|(_, player)| {
-            if let Some(sender) = &player.sender {
-                sender
-                    .send(Ok(Message::text(
-                        serde_json::to_string(&WebSocketResponse {
-                            response_type: "GameState".into(),
-                            data: {},
-                        })
-                        .unwrap(),
-                    )))
-                    .unwrap();
-            }
-        });
+        let message = WebSocketResponse {
+            response_type: "GameState".into(),
+            data: {},
+        };
+        send_message_to_players(message, game, players).await;
         Ok(StatusCode::OK)
     } else {
         Err(warp::reject::not_found())
@@ -194,21 +173,56 @@ pub async fn player_pickup_discard_handler(
             return Err(warp::reject::reject());
         }
 
-        players.read().await.iter().for_each(|(_, player)| {
-            if let Some(sender) = &player.sender {
-                sender
-                    .send(Ok(Message::text(
-                        serde_json::to_string(&WebSocketResponse {
-                            response_type: "GameState".into(),
-                            data: {},
-                        })
-                        .unwrap(),
-                    )))
-                    .unwrap();
-            }
-        });
+        let message = WebSocketResponse {
+            response_type: "GameState".into(),
+            data: {},
+        };
+        send_message_to_players(message, game, players).await;
+
         Ok(StatusCode::OK)
     } else {
         Err(warp::reject::not_found())
     }
+}
+
+pub async fn handle_game_status<'a>(
+    status: GameStatus,
+    session: &'a mut GameSession,
+    players: Players,
+) {
+    match status {
+        GameStatus::GameOver => {
+            let message = WebSocketResponse {
+                response_type: "EndGame".into(),
+                data: {},
+            };
+            send_message_to_players(message, session, players).await;
+        }
+        GameStatus::RoundOver => {
+            let message = WebSocketResponse {
+                response_type: "EndGame".into(),
+                data: {},
+            };
+            send_message_to_players(message, session, players).await;
+        }
+        _ => {}
+    }
+}
+
+pub async fn send_message_to_players<T: Serialize>(
+    message: WebSocketResponse<T>,
+    session: &mut GameSession,
+    players: Players,
+) {
+    let players = players.read().await;
+
+    session.inner.players.iter().for_each(|player_id: &String| {
+        if let Some(player) = players.get(player_id) {
+            if let Some(sender) = &player.sender {
+                sender
+                    .send(Ok(Message::text(serde_json::to_string(&message).unwrap())))
+                    .unwrap();
+            }
+        }
+    });
 }
