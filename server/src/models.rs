@@ -17,6 +17,7 @@ pub struct Player {
 pub struct GameSession {
     pub inner: GameResponse,
     pub state: game::gameplay::DDPState,
+    pub is_active: bool,
 }
 
 #[derive(Clone, Debug, Serialize)]

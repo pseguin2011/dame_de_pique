@@ -97,6 +97,7 @@ async fn register_game(
                 players,
             };
             let game_session = GameSession {
+                is_active: false,
                 inner: game_response.clone(),
                 state: DameDePiqueGame::new_game().unwrap(),
             };
@@ -172,34 +173,34 @@ pub async fn start_game_handler(
     sessions: GameSessions,
 ) -> Result<impl Reply> {
     println!("Starting Game {}", body.game_id);
-    players.read().await.iter().for_each(|(_, player)| {
-        if let Some(sender) = &player.sender {
-            sender
-                .send(Ok(Message::text(
-                    serde_json::to_string(&WebSocketResponse {
-                        response_type: "StartGameResponse".into(),
-                        data: StartGameResponse {},
-                    })
-                    .unwrap(),
-                )))
-                .unwrap();
-        }
-    });
-    // sessions
-    //     .read()
-    //     .await
-    //     .get(&body.game_id)
-    //     .unwrap()
-    //     .players
-    //     .iter()
-    //     .for_each(|player_id: String| {
-    //         players
-    //             .read()
-    //             .await
-    //             .get(&player_id)
-    //             .unwarp()
-    //             .sender.send(Ok(Message::text(body.clone())))
-    //     });
+
+    let mut sessions = sessions.write().await;
+    let mut session = sessions
+        .get_mut(&body.game_id)
+        .unwrap();
+    session.is_active = true;
+    let players = players
+        .read()
+        .await;
+
+        session
+        .inner
+        .players
+        .iter()
+        .for_each(|player_id: &String| {
+            if let Some(player) = players.get(player_id){
+                if let Some(sender) = &player.sender {
+                    sender.send(Ok(Message::text(
+                        serde_json::to_string(&WebSocketResponse {
+                            response_type: "StartGameResponse".into(),
+                            data: StartGameResponse {},
+                        })
+                        .unwrap(),
+                    )))
+                    .unwrap();
+                }
+            }
+        });
 
     Ok(StatusCode::OK)
 }
