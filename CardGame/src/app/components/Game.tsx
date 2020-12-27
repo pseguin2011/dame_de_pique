@@ -69,6 +69,12 @@ export class Game extends Component {
         case "GameState":
           this.updateGameState();
           break;
+        case "EndRound":
+          this.endRound();
+          break;
+        case "EndGame":
+          this.endGame();
+        break;
       }
     };
 
@@ -111,6 +117,14 @@ export class Game extends Component {
       this.state.selected = this.state.game_state.player_hand.map(()=> false);
       this.forceUpdate();
     });
+  }
+
+  endRound() {
+    alert("Round Has Ended");
+  }
+
+  endGame() {
+    alert("Game Has Ended");
   }
 
   render(): JSX.Element {

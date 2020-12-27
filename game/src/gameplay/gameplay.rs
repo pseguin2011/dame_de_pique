@@ -281,7 +281,13 @@ impl GameRules<DDPState, DameDePiqueError> for PlayerMove {
                     .add_points(cards.to_vec());
             }
         }
-        Ok(GameStatus::Active)
+        if Self::is_game_over(game) && Self::is_round_over(game) {
+            Ok(GameStatus::GameOver)
+        } else if Self::is_round_over(game) {
+            Ok(GameStatus::RoundOver)
+        } else {
+            Ok(GameStatus::Active)
+        }
     }
 
     fn is_game_over(state: &mut DDPState) -> bool {

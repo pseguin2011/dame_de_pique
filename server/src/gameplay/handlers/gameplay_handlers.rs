@@ -213,8 +213,9 @@ pub async fn handle_game_status<'a>(
             send_message_to_players(message, session, players).await;
         }
         GameStatus::RoundOver => {
+            println!("Round Ended");
             let message = WebSocketResponse {
-                response_type: "EndGame".into(),
+                response_type: "EndRound".into(),
                 data: {},
             };
             send_message_to_players(message, session, players).await;
