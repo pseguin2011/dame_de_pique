@@ -1,7 +1,7 @@
 use crate::error::DameDePiqueError;
 use crate::partners::{Partners, WhoOpened};
 use card_game_engine::builder::GameBuilder;
-use card_game_engine::models::deck::{Card, CardValue, Deck, DeckType};
+use card_game_engine::models::deck::{Card, CardSuit, CardValue, Deck, DeckType};
 use card_game_engine::models::player::Player;
 use card_game_engine::rules::{DefaultMove, GameRules, GameStatus};
 use card_game_engine::state::GameState;
@@ -284,6 +284,25 @@ impl GameRules<DDPState, DameDePiqueError> for PlayerMove {
         if Self::is_game_over(game) && Self::is_round_over(game) {
             Ok(GameStatus::GameOver)
         } else if Self::is_round_over(game) {
+            // let player_totals = game.players.iter().map(|p| p.get_player_points).collect::<Vec<u16>>();
+            for mut partner in game.partners.iter_mut() {
+                partner.total_points += partner.get_points_total() as i16;
+                let player_1_points = Self::calculate_point_total(
+                    game.default_state.players[partner.player_a_index]
+                        .hand
+                        .clone(),
+                );
+                let player_2_points = Self::calculate_point_total(
+                    game.default_state.players[partner.player_b_index]
+                        .hand
+                        .clone(),
+                );
+                partner.total_points -= player_1_points as i16;
+                partner.total_points -= player_2_points as i16;
+            }
+
+            println!("Round has ended, Partners: {:?}", game.partners);
+
             Ok(GameStatus::RoundOver)
         } else {
             Ok(GameStatus::Active)
@@ -310,6 +329,33 @@ impl GameRules<DDPState, DameDePiqueError> for PlayerMove {
 
     fn end_turn(state: &mut DDPState) {
         DefaultMove::end_turn(&mut state.default_state);
+    }
+}
+
+impl PlayerMove {
+    fn calculate_point_total(hand: Vec<Card>) -> u16 {
+        let mut total = 0;
+        for v in hand.iter() {
+            total += match v.value {
+                CardValue::Ace => 15,
+                CardValue::Two => 20,
+                CardValue::Three
+                | CardValue::Four
+                | CardValue::Five
+                | CardValue::Six
+                | CardValue::Seven
+                | CardValue::Eight
+                | CardValue::Nine => 5,
+                CardValue::Ten | CardValue::Jack | CardValue::King => 10,
+                CardValue::Queen => match v.suit {
+                    CardSuit::Clubs | CardSuit::Hearts | CardSuit::Diamonds => 10,
+                    CardSuit::Spades => 100,
+                    _ => 0,
+                },
+                CardValue::Joker => 50,
+            };
+        }
+        total
     }
 }
 

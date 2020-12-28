@@ -70,7 +70,8 @@ class GameLobby extends Component {
           navigation.push('Game', {
             game_id:    this.state.game_id,
             websocket:  this.socket,
-            player_id:  this.state.players.indexOf(this.name)
+            player_id:  this.state.players.indexOf(this.name),
+            player_names: this.state.players,
           });
           navigation.navigate('Game');
           break;

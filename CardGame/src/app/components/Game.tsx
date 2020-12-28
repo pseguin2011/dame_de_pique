@@ -28,6 +28,8 @@ type GameState = {
     player_hand: {card: CardType, index: number}[],
     team1_points: TeamPointsType,
     team2_points: TeamPointsType,
+    team_1_total_points: number,
+    team_2_total_points: number,
     top_discard?: CardType,
     turn: number,
   },
@@ -43,12 +45,14 @@ export class Game extends Component {
   game_id: string;
   socket: WebSocket;
   player_id: number;
+  player_names: string[];
 
   constructor(props: any) {
     super(props);
     this.game_id = props.route.params.game_id;
     this.socket = props.route.params.websocket;
     this.player_id = props.route.params.player_id;
+    this.player_names = props.route.params.player_names;
     this.client = new GameClient(this.game_id, this.player_id);
     this.state = { 
       selected: [],
@@ -57,6 +61,8 @@ export class Game extends Component {
         player_hand: [],
         team1_points: {'': []},
         team2_points: {'': []},
+        team_1_total_points: 0,
+        team_2_total_points: 0,
         top_discard: undefined,
         turn: 0,
       },
@@ -142,7 +148,10 @@ export class Game extends Component {
 
         <View style={PLAYER_CONTAINER_VIEW_STYLE}>
           <Text style={TITLE_STYLES}>Player</Text>
-          <Text> You are player {this.player_id + 1} on team {((this.player_id % 2) == 0) ? 1 : 2} </Text>
+          <Text>You are player {this.player_id + 1} on team {((this.player_id % 2) == 0) ? 1 : 2} </Text>
+          <Text>It's {this.player_names[this.state.game_state.turn]}'s Turn</Text>
+          <Text>Team 1 overall points: {this.state.game_state.team_1_total_points}</Text>
+          <Text>Team 2 overall points: {this.state.game_state.team_2_total_points}</Text>
           <FlatList
             horizontal
             style={{flexDirection:'row'}}

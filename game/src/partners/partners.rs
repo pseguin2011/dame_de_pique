@@ -19,9 +19,10 @@ pub enum WhoOpened {
 
 #[derive(Debug, Clone)]
 pub struct Partners {
-    player_a_index: usize,
-    player_b_index: usize,
+    pub player_a_index: usize,
+    pub player_b_index: usize,
     pub points_deck: HashMap<CardValue, Vec<Card>>,
+    pub total_points: i16,
     status: TeamOpenStatus,
 }
 
@@ -30,6 +31,7 @@ impl Partners {
         Self {
             player_a_index,
             player_b_index,
+            total_points: 0,
             points_deck: HashMap::new(),
             status: TeamOpenStatus::None,
         }
