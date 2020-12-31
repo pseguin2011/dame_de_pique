@@ -281,12 +281,12 @@ impl GameRules<DDPState, DameDePiqueError> for PlayerMove {
                     .add_points(cards.to_vec());
             }
         }
+
         if Self::is_game_over(game) && Self::is_round_over(game) {
             Ok(GameStatus::GameOver)
         } else if Self::is_round_over(game) {
-            // let player_totals = game.players.iter().map(|p| p.get_player_points).collect::<Vec<u16>>();
             for mut partner in game.partners.iter_mut() {
-                partner.total_points += partner.get_points_total() as i16;
+                partner.overall_points += partner.get_points_total() as i16;
                 let player_1_points = Self::calculate_point_total(
                     game.default_state.players[partner.player_a_index]
                         .hand
@@ -297,11 +297,9 @@ impl GameRules<DDPState, DameDePiqueError> for PlayerMove {
                         .hand
                         .clone(),
                 );
-                partner.total_points -= player_1_points as i16;
-                partner.total_points -= player_2_points as i16;
+                partner.overall_points -= player_1_points as i16;
+                partner.overall_points -= player_2_points as i16;
             }
-
-            println!("Round has ended, Partners: {:?}", game.partners);
 
             Ok(GameStatus::RoundOver)
         } else {
@@ -333,7 +331,7 @@ impl GameRules<DDPState, DameDePiqueError> for PlayerMove {
 }
 
 impl PlayerMove {
-    fn calculate_point_total(hand: Vec<Card>) -> u16 {
+    pub fn calculate_point_total(hand: Vec<Card>) -> u16 {
         let mut total = 0;
         for v in hand.iter() {
             total += match v.value {

@@ -22,7 +22,7 @@ pub struct Partners {
     pub player_a_index: usize,
     pub player_b_index: usize,
     pub points_deck: HashMap<CardValue, Vec<Card>>,
-    pub total_points: i16,
+    pub overall_points: i16,
     status: TeamOpenStatus,
 }
 
@@ -31,7 +31,7 @@ impl Partners {
         Self {
             player_a_index,
             player_b_index,
-            total_points: 0,
+            overall_points: 0,
             points_deck: HashMap::new(),
             status: TeamOpenStatus::None,
         }
@@ -146,31 +146,27 @@ impl Partners {
 
     pub fn get_points_total(&self) -> u16 {
         let mut total = 0;
-        for (k, v) in self.points_deck.iter() {
-            total += match k {
-                CardValue::Ace => 15,
-                CardValue::Two => 20,
-                CardValue::Three
-                | CardValue::Four
-                | CardValue::Five
-                | CardValue::Six
-                | CardValue::Seven
-                | CardValue::Eight
-                | CardValue::Nine => 5,
-                CardValue::Ten | CardValue::Jack | CardValue::King => 10,
-                CardValue::Queen => {
-                    let mut queens_total = 0;
-                    for c in v {
-                        queens_total += match c.suit {
-                            CardSuit::Clubs | CardSuit::Hearts | CardSuit::Diamonds => 10,
-                            CardSuit::Spades => 100,
-                            _ => 0,
-                        };
-                    }
-                    queens_total
+        for (_, v) in self.points_deck.iter() {
+            for card in v {
+                total += match card.value {
+                    CardValue::Ace => 15,
+                    CardValue::Two => 20,
+                    CardValue::Three
+                    | CardValue::Four
+                    | CardValue::Five
+                    | CardValue::Six
+                    | CardValue::Seven
+                    | CardValue::Eight
+                    | CardValue::Nine => 5,
+                    CardValue::Ten | CardValue::Jack | CardValue::King => 10,
+                    CardValue::Queen => match card.suit {
+                        CardSuit::Clubs | CardSuit::Hearts | CardSuit::Diamonds => 10,
+                        CardSuit::Spades => 100,
+                        _ => 0,
+                    },
+                    CardValue::Joker => 50,
                 }
-                CardValue::Joker => 50,
-            };
+            }
         }
         total
     }

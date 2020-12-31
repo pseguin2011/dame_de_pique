@@ -71,8 +71,8 @@ impl From<DDPState> for PlayerGameStateResponse {
             })
             .collect();
 
-        let team_1_total_points = other.partners[0].total_points;
-        let team_2_total_points = other.partners[1].total_points;
+        let team_1_total_points = other.partners[0].overall_points;
+        let team_2_total_points = other.partners[1].overall_points;
 
         let top_discard = match other.default_state.deck.peek_top_discarded_card() {
             Some(card) => Some(Card::from(card.clone())),

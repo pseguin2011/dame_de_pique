@@ -24,7 +24,7 @@ pub async fn get_game_state_handler(
     println!("Gameplay Request");
     if let Some(game) = sessions.read().await.get(&params["game-id"]) {
         let player = &params["player"].parse::<usize>().unwrap();
-        let mut response: PlayerGameStateResponse = game.clone().state.into();
+        let mut response: PlayerGameStateResponse = game.state.clone().into();
         response.player_hand = game.state.default_state.players[*player]
             .hand
             .iter()
