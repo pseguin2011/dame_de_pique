@@ -24,6 +24,7 @@ type TeamPointsType = {
 type GameState = {
   selected: boolean[],
   did_draw: boolean,
+  round_over: boolean,
   game_state: {
     player_hand: {card: CardType, index: number}[],
     team1_points: TeamPointsType,
@@ -66,6 +67,7 @@ export class Game extends Component {
         top_discard: undefined,
         turn: 0,
       },
+      round_over: false,
     };
 
     // Updates the websocket messages received to handle game state messages while in this component.
@@ -125,8 +127,25 @@ export class Game extends Component {
     });
   }
 
+  startNewRound() {
+    this.state.round_over = false;
+    fetch('http://' + this.host + ':' + this.port + '/game-start', {
+      method: "POST",
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(
+        {'game_id': '1'}
+      )
+    }).catch((e) => {alert("Could not start the game."); throw e;} );
+  }
+
   endRound() {
-    alert("Round Has Ended");
+    this.client.updateGameState(async (json: any) => {
+      this.state.round_over = true;
+      alert("Round Has Ended \nTeam 1 has: " + json.team_1_total_points + " points\nTeam 2 has: " + json.team_2_total_points + " points");
+    });
   }
 
   endGame() {
@@ -207,6 +226,15 @@ export class Game extends Component {
               color="#678547"
               onPress={async()=> await this.discardAction()}/>
           </View>
+          {this.player_id == 0 &&
+          <View style={GAME_ACTION_STYLE}>
+            <Button
+              disabled={!this.state.round_over}
+              title="Start new round"
+              color="#678547"
+              onPress={async()=> await this.startNewRound()}/>
+          </View>
+          }
         </View>
       </View>;
   }

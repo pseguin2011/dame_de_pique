@@ -175,32 +175,38 @@ pub async fn start_game_handler(
     println!("Starting Game {}", body.game_id);
 
     let mut sessions = sessions.write().await;
-    let mut session = sessions
-        .get_mut(&body.game_id)
-        .unwrap();
-    session.is_active = true;
-    let players = players
-        .read()
-        .await;
+    let mut session = sessions.get_mut(&body.game_id).unwrap();
 
-        session
-        .inner
-        .players
-        .iter()
-        .for_each(|player_id: &String| {
-            if let Some(player) = players.get(player_id){
-                if let Some(sender) = &player.sender {
-                    sender.send(Ok(Message::text(
+    let team_1_points = session.state.partners[0].overall_points;
+    let team_2_points = session.state.partners[1].overall_points;
+
+    session.state = DameDePiqueGame::new_game().unwrap();
+
+    session.state.partners[0].overall_points = team_1_points;
+    session.state.partners[1].overall_points = team_2_points;
+
+    let players = players.read().await;
+    let response_type = if session.is_active {
+        "GameState"
+    } else {
+        "StartGameResponse"
+    };
+    session.is_active = true;
+    session.inner.players.iter().for_each(|player_id: &String| {
+        if let Some(player) = players.get(player_id) {
+            if let Some(sender) = &player.sender {
+                sender
+                    .send(Ok(Message::text(
                         serde_json::to_string(&WebSocketResponse {
-                            response_type: "StartGameResponse".into(),
+                            response_type: response_type.into(),
                             data: StartGameResponse {},
                         })
                         .unwrap(),
                     )))
                     .unwrap();
-                }
             }
-        });
+        }
+    });
 
     Ok(StatusCode::OK)
 }
@@ -239,4 +245,3 @@ pub async fn unregister_player_handler(
     }
     Ok(json(&removed_player))
 }
-
