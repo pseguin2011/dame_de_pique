@@ -9,8 +9,13 @@ export const GAME_ACTIONS_STYLE: ViewStyle = {
   };
   
   export const GAME_ACTION_STYLE: ViewStyle = {
-    margin: 20,
+    marginLeft: 30,
+    margin: 10,
     width: 160,
+    borderColor: 'black',
+    borderStyle: 'solid',
+    borderRadius: 5,
+    backgroundColor: 'white',
   };
 
   const CARD_CONTAINER_VIEW_STYLE: ViewStyle = {
@@ -36,14 +41,13 @@ export const GAME_ACTIONS_STYLE: ViewStyle = {
     flex: 1,
     flexDirection: "row",
     flexWrap: 'wrap',
-    height: 240,
-    minWidth: 30,
+    height: 420,
+    minWidth: 60,
     ... CARD_CONTAINER_VIEW_STYLE
   };
   
   export const TITLE_STYLES: TextStyle = {
     color: 'Black',
     fontWeight: 'bold',
-    margin: 5,
     fontSize: 20
   };

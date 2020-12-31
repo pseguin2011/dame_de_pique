@@ -160,17 +160,24 @@ export class Game extends Component {
             <TeamPoints team_points={this.state.game_state.team2_points} team_name="Team 2" />
           </View>
           <View style={DECK_CONTAINER_VIEW_STYLE}>
+              <View style={{flexDirection: 'column'}}>
               <Deck/>
               <Card value={this.state.game_state.top_discard?.value as CARD_VALUE} suit={this.state.game_state.top_discard?.suit as CARD_SUIT} selected={false}/>
+              <View>
+                <Text style={TITLE_STYLES}>Player</Text>
+                <Text style={{fontSize: 15, fontWeight: 'bold'}}>{this.player_names[this.player_id]}</Text>
+                <Text style={{fontSize: 12, fontWeight: 'bold'}}>Team {((this.player_id % 2) == 0) ? 1 : 2} / Player {this.player_id + 1} </Text>
+                <Text style={TITLE_STYLES}>Team Points</Text>
+                <Text style={{fontSize: 15}}>Team 1: {this.state.game_state.team_1_total_points}</Text>
+                <Text style={{fontSize: 15}}>Team 2: {this.state.game_state.team_2_total_points}</Text>
+                <Text style={TITLE_STYLES}>Turn</Text>
+                <Text style={{fontSize: 12}}>{this.player_names[this.state.game_state.turn]}'s Turn</Text>
+              </View>
+              </View>
           </View>
         </View>
-
-        <View style={PLAYER_CONTAINER_VIEW_STYLE}>
+        <View style={{...PLAYER_CONTAINER_VIEW_STYLE}}>
           <Text style={TITLE_STYLES}>Player</Text>
-          <Text>You are player {this.player_id + 1} on team {((this.player_id % 2) == 0) ? 1 : 2} </Text>
-          <Text>It's {this.player_names[this.state.game_state.turn]}'s Turn</Text>
-          <Text>Team 1 overall points: {this.state.game_state.team_1_total_points}</Text>
-          <Text>Team 2 overall points: {this.state.game_state.team_2_total_points}</Text>
           <FlatList
             horizontal
             style={{flexDirection:'row'}}

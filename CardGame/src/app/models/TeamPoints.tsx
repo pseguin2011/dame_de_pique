@@ -53,7 +53,7 @@ export default class TeamPoints extends Component<{}, {}> {
         <View style={{flexDirection: 'row'}}>
           <View style={{flexDirection: 'column'}}>
             <Text style={TITLE_STYLES}>{this.props.team_name}</Text>
-            <Text>Total Points {this.calculateTeamRoundPoints()}</Text>
+            <Text>Round Points {this.calculateTeamRoundPoints()}</Text>
           </View>
           <FlatList
             horizontal
