@@ -12,9 +12,14 @@ ENV PATH="/root/.cargo/bin:${PATH}"
 
 # Configure
 RUN git clone https://github.com/pseguin2011/dame_de_pique
-RUN cd dame_de_pique/server && cargo build
+RUN cd dame_de_pique/server && cargo build --release
 RUN chmod -R 777 /dame_de_pique -R
 
+RUN mkdir dame_de_pique/common
+COPY network.json /common/network.json
+
 # Running Image
+EXPOSE 8000/udp
 EXPOSE 8000/tcp
-CMD ["./dame_de_pique/server/target/debug/server"]
+
+CMD ["./dame_de_pique/target/release/server"]
