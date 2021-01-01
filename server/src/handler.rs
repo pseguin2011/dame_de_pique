@@ -155,7 +155,7 @@ async fn register_player(username: String, players: Players) -> Result<PlayerRes
     let player_response = PlayerResponse {
         username: username.clone(),
         game_session_id: None,
-        websocket_url: format!("http://{}:{}/ws/{}", config.host, config.port, username);,
+        websocket_url: format!("http://{}:{}/ws/{}", config.host, config.port, username),
     };
     players.insert(
         username.clone(),
