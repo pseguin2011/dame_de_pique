@@ -1,5 +1,10 @@
 # dame_de_pique
 
+## Install
+expo install react-native-gesture-handler react-native-reanimated react-native-screens react-native-safe-area-context @react-native-community/masked-view
+npm install @react-navigation/native @react-navigation/stack
+npm i -S unique-name-generator
+
 ## Description
 This is a french game meaning queen of hearts.
 It is a point based game with the objective to reach 1000 points with your partner before the opposing team.
