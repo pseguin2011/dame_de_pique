@@ -1,8 +1,8 @@
 use serde::Deserialize;
+use std::env;
 use std::fs::File;
 use std::io::Read;
 use std::net::{IpAddr, Ipv4Addr};
-use std::env;
 
 const DEFAULT_NETWORK_CONFIG_PATH: &str = "../common/network.json";
 
@@ -59,7 +59,6 @@ pub fn load_config() -> Config {
         Err(_) => DEFAULT_NETWORK_CONFIG_PATH.to_string(),
     };
 
-    println!("Path: {}", path);
     let mut file = File::open(path).unwrap();
     let mut data = String::new();
     file.read_to_string(&mut data).unwrap();

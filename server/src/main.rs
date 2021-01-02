@@ -55,6 +55,7 @@ async fn main() {
         .and(warp::ws())
         .and(warp::path::param())
         .and(with_players(players.clone()))
+        .and(with_game_sessions(sessions.clone()))
         .and_then(handler::ws_handler);
 
     let gameplay_route = warp::path("game-state")

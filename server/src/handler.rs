@@ -155,7 +155,10 @@ async fn register_player(username: String, players: Players) -> Result<PlayerRes
     let player_response = PlayerResponse {
         username: username.clone(),
         game_session_id: None,
-        websocket_url: format!("ws://{}:{}/ws/{}", config.host, config.port, username),
+        websocket_url: format!(
+            "ws://{}:{}/ws/{}",
+            config.websocket_host, config.port, username
+        ),
     };
     players.insert(
         username.clone(),
@@ -216,12 +219,14 @@ pub async fn ws_handler(
     ws: warp::ws::Ws,
     player_id: String,
     players: Players,
+    games: GameSessions,
 ) -> Result<impl Reply> {
     println!("Websocket Request for: user {}", player_id);
     let player = players.read().await.get(&player_id).cloned();
     match player {
-        Some(c) => Ok(ws
-            .on_upgrade(move |socket| crate::ws::client_connection(socket, player_id, players, c))),
+        Some(c) => Ok(ws.on_upgrade(move |socket| {
+            crate::ws::client_connection(socket, player_id, players, games, c)
+        })),
         None => Err(warp::reject::not_found()),
     }
 }
