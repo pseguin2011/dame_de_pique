@@ -5,6 +5,8 @@ expo install react-native-gesture-handler react-native-reanimated react-native-s
 npm install @react-navigation/native @react-navigation/stack
 npm i -S unique-name-generator
 
+specify the network config path by defining NETWORK_CONFIG_PATH
+
 ## Description
 This is a french game meaning queen of hearts.
 It is a point based game with the objective to reach 1000 points with your partner before the opposing team.

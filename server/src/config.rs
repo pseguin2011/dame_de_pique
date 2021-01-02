@@ -2,10 +2,14 @@ use serde::Deserialize;
 use std::fs::File;
 use std::io::Read;
 use std::net::{IpAddr, Ipv4Addr};
+use std::env;
+
+const DEFAULT_NETWORK_CONFIG_PATH: &str = "../common/network.json";
 
 /// Server Configuration of ip and port
 #[derive(Debug)]
 pub struct Config {
+    pub websocket_host: String,
     pub host: IpAddr,
     pub port: u16,
 }
@@ -13,6 +17,7 @@ pub struct Config {
 /// JSON representation of the loaded json data
 #[derive(Debug, Clone, Deserialize)]
 pub struct ConfigJson {
+    websocket_host: String,
     server_host: String,
     server_port: u16,
 }
@@ -29,6 +34,7 @@ impl Into<Config> for ConfigJson {
             host_string.next(),
         ) {
             return Config {
+                websocket_host: self.websocket_host,
                 host: IpAddr::V4(Ipv4Addr::new(
                     a.parse::<u8>().unwrap(),
                     b.parse::<u8>().unwrap(),
@@ -48,7 +54,13 @@ impl Into<Config> for ConfigJson {
 /// # Returns
 /// A config object with the host and port of the server
 pub fn load_config() -> Config {
-    let mut file = File::open("../common/network.json").unwrap();
+    let path = match env::var("NETWORK_CONFIG_PATH") {
+        Ok(path) => path,
+        Err(_) => DEFAULT_NETWORK_CONFIG_PATH.to_string(),
+    };
+
+    println!("Path: {}", path);
+    let mut file = File::open(path).unwrap();
     let mut data = String::new();
     file.read_to_string(&mut data).unwrap();
     let config: ConfigJson = serde_json::from_str(&data).unwrap();
