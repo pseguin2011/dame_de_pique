@@ -36,6 +36,7 @@ export default class TeamPoints extends Component<{}, {}> {
 
     constructor(props: any) {
         super(props);
+
     }
 
     calculateTeamRoundPoints(): number {
@@ -49,6 +50,8 @@ export default class TeamPoints extends Component<{}, {}> {
       }
 
       render() {
+        let items = Object.entries(this.props.team_points);
+        items.sort();
         return <View style={TEAM_CONTAINER_VIEW_STYLE}>
         <View style={{flexDirection: 'row'}}>
           <View style={{flexDirection: 'column'}}>
@@ -58,7 +61,7 @@ export default class TeamPoints extends Component<{}, {}> {
           <FlatList
             horizontal
             style={{flexDirection:'row', overflow: 'scroll'}}
-            data={Object.entries(this.props.team_points)}
+            data={items}
             renderItem={({item}: {item: [string, CardType[] | undefined]}) => {
               var cards = item[1]?.map(card => {
                 return <View style={{marginRight: -55, paddingBottom: 30 }}>

@@ -1,4 +1,6 @@
-use crate::models::{GameSession, GameSessions, Player, Players, WebSocketResponse};
+use crate::models::{
+    GameSession, GameSessions, Player, Players, StartGameResponse, WebSocketResponse,
+};
 use futures::{FutureExt, StreamExt};
 use game::Game;
 use serde::Deserialize;
@@ -22,10 +24,16 @@ pub async fn client_connection(
             eprintln!("error sending websocket msg: {}", e);
         }
     }));
-
-    client.sender = Some(client_sender);
-    clients.write().await.insert(player_id.clone(), client);
-
+    {
+        let mut clients_writeable = clients.write().await;
+        client.sender = Some(client_sender);
+        match clients_writeable.get_mut(&player_id) {
+            Some(p) => *p = client,
+            None => {
+                clients_writeable.insert(player_id.clone(), client);
+            }
+        }
+    }
     println!("{} connected", player_id);
 
     while let Some(result) = client_ws_rcv.next().await {
@@ -50,23 +58,11 @@ pub async fn client_connection(
     let game_id_option = &player.inner.game_session_id;
     if let Some(game_id) = game_id_option {
         if let Some(game) = games.write().await.get_mut(game_id) {
-            game.inner.players.remove(&player.inner.username);
-            players.remove(&player_id);
-            game.inner.players.iter().for_each(|player_id: &String| {
-                if let Some(player) = players.get(player_id) {
-                    if let Some(sender) = &player.sender {
-                        sender
-                            .send(Ok(Message::text(
-                                serde_json::to_string(&WebSocketResponse {
-                                    data: game.inner.clone(),
-                                    response_type: "GameSession".into(),
-                                })
-                                .unwrap(),
-                            )))
-                            .unwrap();
-                    }
-                }
-            });
+            // a player has disconnected and wasn't part of an active game
+            if !game.is_active {
+                game.inner.players.remove(&player.inner.username);
+                players.remove(&player_id);
+            }
         }
     }
 }

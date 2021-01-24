@@ -45,6 +45,7 @@ export class Game extends Component {
   client: GameClient;
   game_id: string;
   socket: WebSocket;
+  websocket_url: string;
   player_id: number;
   player_names: string[];
 
@@ -52,6 +53,7 @@ export class Game extends Component {
     super(props);
     this.game_id = props.route.params.game_id;
     this.socket = props.route.params.websocket;
+    this.websocket_url = props.route.params.websocket_url;
     this.player_id = props.route.params.player_id;
     this.player_names = props.route.params.player_names;
     this.client = new GameClient(this.game_id, this.player_id);
@@ -70,23 +72,27 @@ export class Game extends Component {
       round_over: false,
     };
 
-    // Updates the websocket messages received to handle game state messages while in this component.
-    this.socket.onmessage = (e) => {
-      let json: WebSocketResponse = JSON.parse(e.data);
-      switch (json.response_type) {
-        case "GameState":
-          this.updateGameState();
-          break;
-        case "EndRound":
-          this.endRound();
-          break;
-        case "EndGame":
-          this.endGame();
-        break;
-      }
-    };
+    this.initialize_web_socket();
 
     this.updateGameState();
+  }
+
+  initialize_web_socket() {
+        // Updates the websocket messages received to handle game state messages while in this component.
+        this.socket.onmessage = (e) => {
+          let json: WebSocketResponse = JSON.parse(e.data);
+          switch (json.response_type) {
+            case "GameState":
+              this.updateGameState();
+              break;
+            case "EndRound":
+              this.endRound();
+              break;
+            case "EndGame":
+              this.endGame();
+            break;
+          }
+        };
   }
 
   /// Sends the draw card action for the current game to the server.
@@ -113,7 +119,7 @@ export class Game extends Component {
       alert("You must select ONE card to discard");
       return;
     }
-    this.client.discardAction(selected_indices[0], () => {
+    this.client.discardAction(selected_indices[0], async () => {
       this.state.did_draw = false;
     });
   }
@@ -128,8 +134,39 @@ export class Game extends Component {
     });
   }
 
+  reconnectToGame() {
+    this.socket.close();
+    let socket = new WebSocket(this.websocket_url);
+
+    socket.onmessage = (e) => {
+      let json: WebSocketResponse = JSON.parse(e.data);
+      switch (json.response_type) {
+        case "GameState":
+          this.updateGameState();
+          break;
+        case "EndRound":
+          this.endRound();
+          break;
+        case "EndGame":
+          this.endGame();
+        break;
+      }
+    };
+    socket.onerror = (e) => {
+      // an error occurred
+      console.log((e as any).message);
+    };
+
+    socket.onclose = (e) => {
+      // connection closed
+      console.log(e.code, e.reason);
+    };
+    this.socket = socket;
+    this.updateGameState();
+  }
+
   startNewRound() {
-    this.state.rounjd_over = false;
+    this.state.round_over = false;
     fetch('http://' + this.host + ':' + this.port + '/game-start', {
       method: "POST",
       headers: {
@@ -173,6 +210,7 @@ export class Game extends Component {
                 <Text style={{fontSize: 15}}>Team 2: {this.state.game_state.team_2_total_points}</Text>
                 <Text style={TITLE_STYLES}>Turn</Text>
                 <Text style={{fontSize: 12}}>{this.player_names[this.state.game_state.turn]}'s Turn</Text>
+                <Button title="Reconnect" color="#678547" onPress={async() => { this.reconnectToGame(); }}/>
               </View>
               </View>
           </View>

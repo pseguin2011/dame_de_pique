@@ -20,7 +20,7 @@ export const GAME_ACTIONS_STYLE: ViewStyle = {
 
   const CARD_CONTAINER_VIEW_STYLE: ViewStyle = {
     margin: 7,
-    padding: 10,
+    padding: 7,
     backgroundColor: 'white',
     borderRadius: 5,
     left: '0%',
@@ -41,7 +41,7 @@ export const GAME_ACTIONS_STYLE: ViewStyle = {
     flex: 1,
     flexDirection: "row",
     flexWrap: 'wrap',
-    height: 420,
+    height: 430,
     minWidth: 60,
     ... CARD_CONTAINER_VIEW_STYLE
   };
