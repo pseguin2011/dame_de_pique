@@ -113,8 +113,9 @@ export class Game extends Component {
       alert("You must select ONE card to discard");
       return;
     }
-    this.client.discardAction(selected_indices[0]);
-    this.state.did_draw = false;
+    this.client.discardAction(selected_indices[0], () => {
+      this.state.did_draw = false;
+    });
   }
 
   /// Fetches the current game state and updates the all components and unselects all cards. 
@@ -128,7 +129,7 @@ export class Game extends Component {
   }
 
   startNewRound() {
-    this.state.round_over = false;
+    this.state.rounjd_over = false;
     fetch('http://' + this.host + ':' + this.port + '/game-start', {
       method: "POST",
       headers: {

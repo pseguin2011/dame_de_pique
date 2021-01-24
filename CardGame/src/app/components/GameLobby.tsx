@@ -16,10 +16,10 @@ class GameLobby extends Component {
 
   constructor(props: {route: any, navigation: any}) {
     super(props);
-    this.state = {game_id: '1', players: []};
+    this.state = {game_id: props.route.params.game_session_id, players: []};
     this.socket;
     this.name = props.route.params.username;
-    this.connectToGame(props.route.params.username);
+    this.connectToGame(props.route.params.username, props.route.params.game_session_id);
     this.connectWebSocket(props.route.params.websocket_url);
   }
   
@@ -89,7 +89,7 @@ class GameLobby extends Component {
     };
   }
 
-  connectToGame(username: string) {
+  connectToGame(username: string, game_id: string) {
     fetch('http://' + this.host + ':' + this.port + '/game-register', {
       method: "POST",
       headers: {
@@ -97,7 +97,7 @@ class GameLobby extends Component {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(
-        {'game_identifier': '1', 'player_username': username}
+        {'game_identifier': game_id, 'player_username': username}
       )
     }).catch((e) => {alert("Could not join the game, room must be full."); throw e;} )
     .then((response) => response.json())
@@ -116,7 +116,7 @@ class GameLobby extends Component {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(
-        {'game_id': '1'}
+        {'game_id': this.state.game_id}
       )
     }).catch((e) => {alert("Could not start the game."); throw e;} );
   }

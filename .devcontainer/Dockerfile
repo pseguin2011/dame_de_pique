@@ -16,7 +16,6 @@ RUN mkdir -p ~/src \
     && mkdir ~/.npm-global \
     && npm install expo-cli --global
 
-
 #used by react native builder to set the ip address, other wise 
 #will use the ip address of the docker container.
 ENV REACT_NATIVE_PACKAGER_HOSTNAME="10.0.0.2"
@@ -30,6 +29,5 @@ RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
 
 # Setup ENVs
 ENV PATH="/root/.cargo/bin:/root/.npm-global:/root/.npm-global/bin:${PATH}"
-ENV NETWORK_CONFIG_PATH="/workspaces/dame_de_pique/common/network.json"
 RUN rustup component add rust-analysis rls rust-src rust-std
 # ENV RUST_SRC_PATH="/root/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library"

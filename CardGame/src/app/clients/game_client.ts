@@ -18,7 +18,7 @@ export default class GameClient {
     });
   }
 
-  async discardAction(cardIndex: number) {
+  async discardAction(cardIndex: number, post_event: () => {}) {
 
     await fetch('http://' + this.host + ':' + this.port + '/discard-card', {
       method: "POST",
@@ -29,7 +29,10 @@ export default class GameClient {
       body: JSON.stringify(
         {'game_id': this.game_id, 'card_index': cardIndex}
       )
-    }).catch((e) => {alert("Could not discard."); throw e;} );
+    }).catch((e) => {alert("Could not discard."); throw e;} )
+    .then((_)=>{
+      post_event();
+    });
   }
 
   async openAction(cards: number[]) {
@@ -75,8 +78,12 @@ export default class GameClient {
         {'game_id': this.game_id, 'card_indices': cards}
       )
     }).catch((e) => { alert("Could not pickup the discard pile, an error occured."); throw e;} )
-    .then((_) => {
-      post_event();
+    .then((e) => {
+      if (e.status == 200) {
+        post_event();
+      } else {
+        alert("You can't pickup the discard pile.")
+      }
     });
   }
 
